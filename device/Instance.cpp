@@ -8,7 +8,7 @@
 namespace anari_cycles {
 
 Instance::Instance(CyclesGlobalState *s)
-    : Object(ANARI_INSTANCE, s), m_xfmArray(this)
+    : Object(ANARI_INSTANCE, s), m_xfmArray(this), m_idArray(this)
 {}
 
 Instance::~Instance() = default;

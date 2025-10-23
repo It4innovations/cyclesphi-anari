@@ -36,9 +36,13 @@ struct CyclesGlobalState : public helium::BaseGlobalDeviceState
 
   FrameOutputDriver *output_driver{nullptr};
 
-  ccl::ColorNode *backgroundColor{nullptr};
-  ccl::ColorNode *ambientColor{nullptr};
-  ccl::ValueNode *ambientIntensity{nullptr};
+  //ccl::BackgroundNode *background{nullptr};
+  //ccl::BackgroundNode *ambient{nullptr};
+
+  //ccl::Shader* background_shader{ nullptr };
+  ccl::BackgroundNode* bg_color_node{ nullptr };
+  ccl::BackgroundNode *ambientIntensity{ nullptr };
+  //ccl::ImageTextureNode *backgroundImage{ nullptr };
 
   // Helper methods //
 

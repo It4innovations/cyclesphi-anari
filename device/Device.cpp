@@ -9,6 +9,9 @@
 #include "scene/integrator.h"
 #include "scene/shader_nodes.h"
 
+#include <util/path.h>
+#include <app/cycles_xml_bin.h>
+
 #include "Array.h"
 #include "Frame.h"
 
@@ -20,18 +23,18 @@ namespace anari_cycles {
 // Helper functions ///////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-template <typename HANDLE_T, typename OBJECT_T>
-inline HANDLE_T getHandleForAPI(OBJECT_T *object)
-{
-  return (HANDLE_T)object;
-}
-
-template <typename OBJECT_T, typename HANDLE_T, typename... Args>
-inline HANDLE_T createObjectForAPI(CyclesGlobalState *s, Args &&...args)
-{
-  return getHandleForAPI<HANDLE_T>(
-      new OBJECT_T(s, std::forward<Args>(args)...));
-}
+//template <typename HANDLE_T, typename OBJECT_T>
+//inline HANDLE_T getHandleForAPI(OBJECT_T *object)
+//{
+//  return (HANDLE_T)object;
+//}
+//
+//template <typename OBJECT_T, typename HANDLE_T, typename... Args>
+//inline HANDLE_T createObjectForAPI(CyclesGlobalState *s, Args &&...args)
+//{
+//  return getHandleForAPI<HANDLE_T>(
+//      new OBJECT_T(s, std::forward<Args>(args)...));
+//}
 
 ///////////////////////////////////////////////////////////////////////////////
 // CyclesDevice definitions ///////////////////////////////////////////////////
@@ -62,10 +65,15 @@ ANARIArray1D CyclesDevice::newArray1D(const void *appMemory,
   md.elementType = type;
   md.numItems = numItems;
 
+  //if (anari::isObject(type))
+  //  return createObjectForAPI<ObjectArray, ANARIArray1D>(deviceState(), md);
+  //else
+  //  return createObjectForAPI<Array1D, ANARIArray1D>(deviceState(), md);
+
   if (anari::isObject(type))
-    return createObjectForAPI<ObjectArray, ANARIArray1D>(deviceState(), md);
+      return (ANARIArray1D) new ObjectArray(deviceState(), md);
   else
-    return createObjectForAPI<Array1D, ANARIArray1D>(deviceState(), md);
+      return (ANARIArray1D) new Array1D(deviceState(), md);
 }
 
 ANARIArray2D CyclesDevice::newArray2D(const void *appMemory,
@@ -85,7 +93,8 @@ ANARIArray2D CyclesDevice::newArray2D(const void *appMemory,
   md.numItems1 = numItems1;
   md.numItems2 = numItems2;
 
-  return createObjectForAPI<Array2D, ANARIArray2D>(deviceState(), md);
+  //return createObjectForAPI<Array2D, ANARIArray2D>(deviceState(), md);
+  return (ANARIArray2D) new Array2D(deviceState(), md);
 }
 
 ANARIArray3D CyclesDevice::newArray3D(const void *appMemory,
@@ -107,92 +116,107 @@ ANARIArray3D CyclesDevice::newArray3D(const void *appMemory,
   md.numItems2 = numItems2;
   md.numItems3 = numItems3;
 
-  return createObjectForAPI<Array3D, ANARIArray3D>(deviceState(), md);
+  //return createObjectForAPI<Array3D, ANARIArray3D>(deviceState(), md);
+  return (ANARIArray3D) new Array3D(deviceState(), md);
 }
 
 ANARICamera CyclesDevice::newCamera(const char *subtype)
 {
   initDevice();
-  return getHandleForAPI<ANARICamera>(
-      Camera::createInstance(subtype, deviceState()));
+  //return getHandleForAPI<ANARICamera>(
+  //    Camera::createInstance(subtype, deviceState()));
+  return (ANARICamera)Camera::createInstance(subtype, deviceState());
 }
 
 ANARIFrame CyclesDevice::newFrame()
 {
   initDevice();
-  return createObjectForAPI<Frame, ANARIFrame>(deviceState());
+  //return createObjectForAPI<Frame, ANARIFrame>(deviceState());
+  return (ANARIFrame) new Frame(deviceState());
 }
 
 ANARIGeometry CyclesDevice::newGeometry(const char *subtype)
 {
   initDevice();
-  return getHandleForAPI<ANARIGeometry>(
-      Geometry::createInstance(subtype, deviceState()));
+  //return getHandleForAPI<ANARIGeometry>(
+  //    Geometry::createInstance(subtype, deviceState()));
+  return (ANARIGeometry)Geometry::createInstance(subtype, deviceState());
 }
 
 ANARIGroup CyclesDevice::newGroup()
 {
   initDevice();
-  return createObjectForAPI<Group, ANARIGroup>(deviceState());
+  //return createObjectForAPI<Group, ANARIGroup>(deviceState());
+  return (ANARIGroup) new Group(deviceState());
 }
 
 ANARIInstance CyclesDevice::newInstance(const char * /*subtype*/)
 {
   initDevice();
-  return createObjectForAPI<Instance, ANARIInstance>(deviceState());
+  //return createObjectForAPI<Instance, ANARIInstance>(deviceState());
+  return (ANARIInstance) new Instance(deviceState());
 }
 
 ANARILight CyclesDevice::newLight(const char *subtype)
 {
   initDevice();
-  return getHandleForAPI<ANARILight>(
-      Light::createInstance(subtype, deviceState()));
+  //return getHandleForAPI<ANARILight>(
+  //    Light::createInstance(subtype, deviceState()));
+  return (ANARILight)Light::createInstance(subtype, deviceState());
 }
 
 ANARIMaterial CyclesDevice::newMaterial(const char *subtype)
 {
   initDevice();
-  return getHandleForAPI<ANARIMaterial>(
-      Material::createInstance(subtype, deviceState()));
+  //return getHandleForAPI<ANARIMaterial>(
+  //    Material::createInstance(subtype, deviceState()));
+  return (ANARIMaterial)Material::createInstance(subtype, deviceState());
 }
 
 ANARIRenderer CyclesDevice::newRenderer(const char *subtype)
 {
   initDevice();
-  return createObjectForAPI<Renderer, ANARIRenderer>(deviceState());
+  //return createObjectForAPI<Renderer, ANARIRenderer>(deviceState());
+  return (ANARIRenderer)Renderer::createInstance(subtype, deviceState());
 }
 
 ANARISampler CyclesDevice::newSampler(const char *subtype)
 {
   initDevice();
-  return getHandleForAPI<ANARISampler>(
-      Sampler::createInstance(subtype, deviceState()));
+  //return getHandleForAPI<ANARISampler>(
+  //    Sampler::createInstance(subtype, deviceState()));
+  return (ANARISampler)Sampler::createInstance(subtype, deviceState());
 }
 
 ANARISpatialField CyclesDevice::newSpatialField(const char *subtype)
 {
   initDevice();
-  return getHandleForAPI<ANARISpatialField>(
-      SpatialField::createInstance(subtype, deviceState()));
+  //return getHandleForAPI<ANARISpatialField>(
+  //    SpatialField::createInstance(subtype, deviceState()));
+  return (ANARISpatialField)SpatialField::createInstance(
+      subtype, deviceState());
 }
 
 ANARISurface CyclesDevice::newSurface()
 {
   initDevice();
-  return createObjectForAPI<Surface, ANARISurface>(deviceState());
+  //return createObjectForAPI<Surface, ANARISurface>(deviceState());
+  return (ANARISurface) new Surface(deviceState());
 }
 
 ANARIVolume CyclesDevice::newVolume(const char *subtype)
 {
   initDevice();
-  return getHandleForAPI<ANARIVolume>(
-      Volume::createInstance(subtype, deviceState()));
+  //return getHandleForAPI<ANARIVolume>(
+  //    Volume::createInstance(subtype, deviceState()));
+  return (ANARIVolume)Volume::createInstance(subtype, deviceState());
 }
 
 ANARIWorld CyclesDevice::newWorld()
 {
   initDevice();
-  return createObjectForAPI<World, ANARIWorld>(deviceState());
+  //return createObjectForAPI<World, ANARIWorld>(deviceState());
+  return (ANARIWorld) new World(deviceState());
 }
 
 // Query functions ////////////////////////////////////////////////////////////
@@ -296,6 +320,9 @@ void CyclesDevice::initDevice()
 
   reportMessage(ANARI_SEVERITY_DEBUG, "initializing cycles device (%p)", this);
 
+  auto& state = *deviceState();
+
+#if 0
   auto *forceCPU = getenv("ANARI_CYCLES_FORCE_CPU");
 
   auto devices = ccl::Device::available_devices();
@@ -310,17 +337,41 @@ void CyclesDevice::initDevice()
     else if (!forceCPU && selectedDevice.type != ccl::DEVICE_OPTIX
         && info.type == ccl::DEVICE_CUDA)
       selectedDevice = info;
-  }
-
-  auto &state = *deviceState();
-
+  } 
   state.session_params.device = selectedDevice;
+#else
+  auto *useGPU = getenv("CYCLES_ANARI_USE_GPU");
+  //state.session_params.device.type = useGPU ? ccl::DEVICE_OPTIX : ccl::DEVICE_CPU;
+  state.session_params.device.type = ccl::DEVICE_CPU;
+  if (useGPU) {
+      printf("useGPU: %s\n", useGPU);
+
+      /* find matching device */
+      ccl::DeviceType device_type = ccl::Device::type_from_string(useGPU);
+      std::vector<ccl::DeviceInfo> devices = ccl::Device::available_devices((ccl::DeviceTypeMask)(1 << device_type));
+
+      bool device_available = false;
+      if (!devices.empty()) {
+          state.session_params.device = devices.front();
+          device_available = true;
+      }
+
+      /* handle invalid configurations */
+      if (state.session_params.device.type == ccl::DEVICE_NONE || !device_available) {
+          fprintf(stderr, "Unknown device: %s\n", useGPU);
+          exit(-1);
+      }
+  }
+#endif
   state.session_params.background = false;
   state.session_params.headless = false;
   state.session_params.use_auto_tile = false;
   state.session_params.tile_size = 2048;
   state.session_params.use_resolution_divider = false;
   state.session_params.samples = 1;
+
+  // TODO:MJ
+  //state.session_params.threads = 1;
 
   reportMessage(ANARI_SEVERITY_INFO,
       "Using Cycles Device '%s'",
@@ -348,7 +399,80 @@ void CyclesDevice::initDevice()
 
   state.session->set_output_driver(std::move(output_driver));
 
- 
+  // set scene
+  std::string filepath_xml;
+  const char* env_xml = getenv("CYCLES_XML_PATH");
+  if (env_xml) {
+      filepath_xml = std::string(env_xml);
+  }
+  else {
+      filepath_xml = path_join(path_get("anari"), "cycles_default_scene.xml");
+  }
+
+  xml_read_file(state.scene, filepath_xml.c_str());
+
+  //TODO:MJ
+  if (state.scene->default_background) {
+      for (ShaderNode* node : state.scene->default_background->graph->nodes) {
+          if (node->name == "bgColor" && node->type == BackgroundNode::get_node_type()) {
+              state.bg_color_node = (ccl::BackgroundNode*)node;
+          }
+          else 
+          if (node->name == "ambientIntensity" && node->type == BackgroundNode::get_node_type()) {
+              state.ambientIntensity = (ccl::BackgroundNode*)node;
+          }
+/*          else if (node->name == "backgroundImage") {
+              state.backgroundImage = (ImageTextureNode*)node;
+          } */         
+      }
+  }
+
+#if 0
+  else 
+  {
+    // setup background shader (divides out ambient and bg color)
+    {  
+      auto *shader = state.scene->default_background;
+      auto graph = std::make_unique<ccl::ShaderGraph>();
+      auto *mix = graph->create_node<ccl::MixClosureNode>();
+      auto *lightPath = graph->create_node<ccl::LightPathNode>();
+      auto *bg = graph->create_node<ccl::BackgroundNode>();
+      bg->name = "background_shader";
+      auto *ambient = graph->create_node<ccl::BackgroundNode>();
+      ambient->name = "ambient_shader";
+
+      //state.background = bg;
+      //state.ambient = ambient;
+
+      graph->connect(ambient->output("Background"), mix->input("Closure1"));
+      graph->connect(bg->output("Background"), mix->input("Closure2"));
+      graph->connect(lightPath->output("Is Camera Ray"), mix->input("Fac"));
+      graph->connect(mix->output("Closure"), graph->output()->input("Surface"));
+
+      shader->set_graph(std::move(graph));
+
+      state.scene->background->set_shader(state.scene->default_background);
+      state.scene->background->set_use_shader(true);
+    }
+
+    // setup global light shader
+    {
+      auto *shader = state.scene->default_light;
+      auto graph = std::make_unique<ccl::ShaderGraph>();
+
+      auto *emission = graph->create_node<ccl::EmissionNode>();
+      emission->set_color(make_float3(1.f, 1.f, 1.f));
+      emission->set_strength(4.0f); // to match VisRTX
+
+      graph->connect(
+          emission->output("Emission"), graph->output()->input("Surface"));
+
+      shader->name = "default_anari_light";
+      shader->set_graph(std::move(graph));
+      shader->reference();
+    }
+  }
+#endif
 
   m_initialized = true;
 }

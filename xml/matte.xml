@@ -1,0 +1,39 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<shader name="matte">
+	<principled_bsdf name="Principled BSDF">
+		<socket ui_name="Distribution" value="21"/>
+		<socket ui_name="Subsurface Method" value="27"/>
+		<socket ui_name="Base Color" value="0.800000011920929 0.800000011920929 0.800000011920929 1.0"/>
+		<socket ui_name="Metallic" value="0.0"/>
+		<socket ui_name="Roughness" value="0.5"/>
+		<socket ui_name="IOR" value="1.4500000476837158"/>
+		<socket ui_name="Alpha" value="1.0"/>
+		<socket ui_name="Normal" value="0.0 0.0 0.0 0"/>
+		<socket ui_name="Weight" value="0.0"/>
+		<socket ui_name="Diffuse Roughness" value="0.0"/>
+		<socket ui_name="Subsurface Weight" value="0.0"/>
+		<socket ui_name="Subsurface Radius" value="1.0 0.20000000298023224 0.10000000149011612 0"/>
+		<socket ui_name="Subsurface Scale" value="0.05000000074505806"/>
+		<socket ui_name="Subsurface IOR" value="1.399999976158142"/>
+		<socket ui_name="Subsurface Anisotropy" value="0.0"/>
+		<socket ui_name="Specular IOR Level" value="0.5"/>
+		<socket ui_name="Specular Tint" value="1.0 1.0 1.0 1.0"/>
+		<socket ui_name="Anisotropic" value="0.0"/>
+		<socket ui_name="Anisotropic Rotation" value="0.0"/>
+		<socket ui_name="Tangent" value="0.0 0.0 0.0 0"/>
+		<socket ui_name="Transmission Weight" value="0.0"/>
+		<socket ui_name="Coat Weight" value="0.0"/>
+		<socket ui_name="Coat Roughness" value="0.029999999329447746"/>
+		<socket ui_name="Coat IOR" value="1.5"/>
+		<socket ui_name="Coat Tint" value="1.0 1.0 1.0 1.0"/>
+		<socket ui_name="Coat Normal" value="0.0 0.0 0.0 0"/>
+		<socket ui_name="Sheen Weight" value="0.0"/>
+		<socket ui_name="Sheen Roughness" value="0.5"/>
+		<socket ui_name="Sheen Tint" value="1.0 1.0 1.0 1.0"/>
+		<socket ui_name="Emission Color" value="1.0 1.0 1.0 1.0"/>
+		<socket ui_name="Emission Strength" value="0.0"/>
+		<socket ui_name="Thin Film Thickness" value="0.0"/>
+		<socket ui_name="Thin Film IOR" value="1.3300000429153442"/>
+	</principled_bsdf>
+	<connect from_node="Principled BSDF" from_socket_ui="BSDF" to_node="Material Output" to_socket_ui="Surface"/>
+</shader>

@@ -68,25 +68,37 @@ bool StructuredRegularField::isValid() const
   return m_data;
 }
 
-std::unique_ptr<ccl::Geometry> StructuredRegularField::makeCyclesGeometry()
+ccl::Geometry* StructuredRegularField::createCyclesGeometryNode()
 {
-  auto volume = std::make_unique<ccl::Volume>();
+    return deviceState()->scene->create_node<ccl::Volume>();
+}
+
+//std::unique_ptr<ccl::Geometry> StructuredRegularField::makeCyclesGeometry()
+void StructuredRegularField::syncCyclesNode(ccl::Geometry* node) const
+{
+  //auto volume = std::make_unique<ccl::Volume>();
+  auto* volume = (ccl::Volume*)node;
   volume->name = ccl::ustring("ANARI Volume");
 
-  volume->set_clipping(-std::numeric_limits<float>::max());
+  //volume->set_clipping(-std::numeric_limits<float>::max());
+  volume->set_clipping(0.0f);
+  volume->set_step_size(0.0f);
   volume->set_object_space(true);
 #if 0
   volume->set_volume_mesh(true);
 #endif
 
-  Attribute *attr = volume->attributes.add(
-      ustring("voxels"), ccl::TypeFloat, ATTR_ELEMENT_VOXEL);
+  Attribute* attr = volume->attributes.add(ustring("density"), TypeFloat, ATTR_ELEMENT_VOXEL);
+  attr->std = ATTR_STD_VOLUME_DENSITY;
+  attr->flags = 0; // TODO:MJ
+
+  //Attribute* attr = volume->attributes.add(ccl::ATTR_STD_VOLUME_DENSITY);
   auto loader = std::make_unique<VolumeImageLoader>(this);
   ImageParams params;
-  auto &state = *deviceState();
-  attr->data_voxel() =
-      state.scene->image_manager->add_image(std::move(loader), params, false);
+  auto& state = *deviceState();
+  attr->data_voxel() = state.scene->image_manager->add_image(std::move(loader), params, false);
 
+#if 0
   auto v_min = make_float3(0.5, 0.5f, 0.5f);
   auto v_max =
       make_float3(m_dims[0] - 0.5f, m_dims[1] - 0.5f, m_dims[2] - 0.5f);
@@ -140,7 +152,9 @@ std::unique_ptr<ccl::Geometry> StructuredRegularField::makeCyclesGeometry()
   }
 #endif
 
-  return volume;
+#endif
+
+ // return volume;
 }
 
 box3 StructuredRegularField::bounds() const

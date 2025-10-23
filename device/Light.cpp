@@ -3,7 +3,7 @@
 
 #include "Light.h"
 #include <anari/anari_cpp/ext/linalg.h>
-#include <zstd_errors.h>
+//#include <zstd_errors.h>
 #include <cmath>
 #include <cstdio>
 #include "Sampler.h"

@@ -101,6 +101,23 @@ inline ccl::Transform mat4ToCycles(const math::mat4 &m)
   return xfm;
 }
 
+// Helper types/functions /////////////////////////////////////////////////////
+
+template <int T>
+struct convert_toFloat4
+{
+    using base_type = typename anari::ANARITypeProperties<T>::base_type;
+    const int nc = anari::ANARITypeProperties<T>::components;
+    anari_vec::float4 operator()(const void* src, size_t offset)
+    {
+        anari_vec::float4 retval = { 0.f, 0.f, 0.f, 1.f };
+        if constexpr (!anari::isObject(T) && T != ANARI_UNKNOWN)
+            anari::ANARITypeProperties<T>::toFloat4(
+                &retval[0], (const base_type*)src + nc * offset);
+        return retval;
+    }
+};
+
 } // namespace anari_cycles
 
 namespace anari {

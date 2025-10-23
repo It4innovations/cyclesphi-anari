@@ -19,6 +19,13 @@ set(CMAKE_BUILD_TYPE_INIT Release)
 set(CMAKE_INSTALL_RPATH "$ORIGIN")
 set(CMAKE_INSTALL_MESSAGE LAZY)
 
+# Some stuff is different when building stabdalone Cycles from inside
+# Blender source code and when building it from it's own repository.
+set(CYCLES_STANDALONE_REPOSITORY TRUE)
+
+# Force standalone build.
+set(WITH_CYCLES_STANDALONE TRUE)
+
 ## Top-level project ##
 
 project(anari-cycles LANGUAGES C CXX)
@@ -30,31 +37,50 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 include(CMakePrintHelpers)
 include(GNUInstallDirs)
 
-## Dependencies ##
+# ## Cycles ##
+add_subdirectory(cyclesphi) #EXCLUDE_FROM_ALL
 
-find_package(anari 0.15.0 REQUIRED)
-find_package(Python3 REQUIRED)
-find_package(OpenImageIO REQUIRED)
+get_directory_property(WITH_CYCLES_ALEMBIC               DIRECTORY cyclesphi DEFINITION WITH_CYCLES_ALEMBIC)
+get_directory_property(WITH_CYCLES_DEVICE_CUDA           DIRECTORY cyclesphi DEFINITION WITH_CYCLES_DEVICE_CUDA)
+get_directory_property(WITH_CYCLES_DEVICE_HIP            DIRECTORY cyclesphi DEFINITION WITH_CYCLES_DEVICE_HIP)
+get_directory_property(WITH_CYCLES_DEVICE_HIPRT          DIRECTORY cyclesphi DEFINITION WITH_CYCLES_DEVICE_HIPRT)
+get_directory_property(WITH_CYCLES_DEVICE_OPTIX          DIRECTORY cyclesphi DEFINITION WITH_CYCLES_DEVICE_OPTIX)
+get_directory_property(WITH_CYCLES_DEVICE_METAL          DIRECTORY cyclesphi DEFINITION WITH_CYCLES_DEVICE_METAL)
+get_directory_property(WITH_CYCLES_DEVICE_ONEAPI         DIRECTORY cyclesphi DEFINITION WITH_CYCLES_DEVICE_ONEAPI)
+get_directory_property(WITH_CYCLES_EMBREE                DIRECTORY cyclesphi DEFINITION WITH_CYCLES_EMBREE)
+get_directory_property(WITH_CYCLES_HYDRA_RENDER_DELEGATE DIRECTORY cyclesphi DEFINITION WITH_CYCLES_HYDRA_RENDER_DELEGATE)
+get_directory_property(WITH_CYCLES_NANOVDB               DIRECTORY cyclesphi DEFINITION WITH_CYCLES_NANOVDB)
+get_directory_property(WITH_CYCLES_OPENCOLORIO           DIRECTORY cyclesphi DEFINITION WITH_CYCLES_OPENCOLORIO)
+get_directory_property(WITH_CYCLES_OPENIMAGEDENOISE      DIRECTORY cyclesphi DEFINITION WITH_CYCLES_OPENIMAGEDENOISE)
+get_directory_property(WITH_CYCLES_OPENSUBDIV            DIRECTORY cyclesphi DEFINITION WITH_CYCLES_OPENSUBDIV)
+get_directory_property(WITH_CYCLES_OPENVDB               DIRECTORY cyclesphi DEFINITION WITH_CYCLES_OPENVDB)
+get_directory_property(WITH_CYCLES_OSL                   DIRECTORY cyclesphi DEFINITION WITH_CYCLES_OSL)
+get_directory_property(WITH_CYCLES_PUGIXML               DIRECTORY cyclesphi DEFINITION WITH_CYCLES_PUGIXML)
+get_directory_property(WITH_CYCLES_USD                   DIRECTORY cyclesphi DEFINITION WITH_CYCLES_USD)
 
-## Cycles library ##
-
-set(WITH_CYCLES_ALEMBIC               OFF CACHE BOOL "")
-set(WITH_CYCLES_DEVICE_CUDA           OFF CACHE BOOL "")
-set(WITH_CYCLES_DEVICE_HIP            OFF CACHE BOOL "")
-set(WITH_CYCLES_DEVICE_OPTIX          OFF CACHE BOOL "")
-set(WITH_CYCLES_EMBREE                OFF CACHE BOOL "")
-set(WITH_CYCLES_HYDRA_RENDER_DELEGATE OFF CACHE BOOL "")
-set(WITH_CYCLES_NANOVDB               OFF CACHE BOOL "")
-set(WITH_CYCLES_OPENCOLORIO           OFF CACHE BOOL "")
-set(WITH_CYCLES_OPENIMAGEDENOISE      OFF CACHE BOOL "")
-set(WITH_CYCLES_OPENSUBDIV            OFF CACHE BOOL "")
-set(WITH_CYCLES_OPENVDB               OFF CACHE BOOL "")
-set(WITH_CYCLES_OSL                   OFF CACHE BOOL "")
-set(WITH_CYCLES_PUGIXML               ON  CACHE BOOL "")
-set(WITH_CYCLES_USD                   OFF CACHE BOOL "")
-
-add_subdirectory(cycles EXCLUDE_FROM_ALL)
+get_directory_property(ALEMBIC_LIBRARIES DIRECTORY cyclesphi DEFINITION ALEMBIC_LIBRARIES)
+get_directory_property(BOOST_LIBRARIES DIRECTORY cyclesphi DEFINITION BOOST_LIBRARIES)
+get_directory_property(Boost_LIBRARIES DIRECTORY cyclesphi DEFINITION Boost_LIBRARIES)
+get_directory_property(CMAKE_INSTALL_OPENMP_LIBRARIES DIRECTORY cyclesphi DEFINITION CMAKE_INSTALL_OPENMP_LIBRARIES)
+get_directory_property(CMAKE_INSTALL_UCRT_LIBRARIES DIRECTORY cyclesphi DEFINITION CMAKE_INSTALL_UCRT_LIBRARIES)
+get_directory_property(EMBREE_LIBRARIES DIRECTORY cyclesphi DEFINITION EMBREE_LIBRARIES)
+get_directory_property(Epoxy_LIBRARIES DIRECTORY cyclesphi DEFINITION Epoxy_LIBRARIES)
+get_directory_property(OPENCOLORIO_LIBRARIES DIRECTORY cyclesphi DEFINITION OPENCOLORIO_LIBRARIES)
+get_directory_property(OPENEXR_LIBRARIES DIRECTORY cyclesphi DEFINITION OPENEXR_LIBRARIES)
+get_directory_property(OPENIMAGEIO_LIBRARIES DIRECTORY cyclesphi DEFINITION OPENIMAGEIO_LIBRARIES)
+get_directory_property(OPENJPEG_LIBRARIES DIRECTORY cyclesphi DEFINITION OPENJPEG_LIBRARIES)
+get_directory_property(OPENPGL_LIBRARIES DIRECTORY cyclesphi DEFINITION OPENPGL_LIBRARIES)
+get_directory_property(OPENSUBDIV_LIBRARIES DIRECTORY cyclesphi DEFINITION OPENSUBDIV_LIBRARIES)
+get_directory_property(OSL_LIBRARIES DIRECTORY cyclesphi DEFINITION OSL_LIBRARIES)
+get_directory_property(PTHREADS_LIBRARIES DIRECTORY cyclesphi DEFINITION PTHREADS_LIBRARIES)
+get_directory_property(PUGIXML_LIBRARIES DIRECTORY cyclesphi DEFINITION PUGIXML_LIBRARIES)
+get_directory_property(PYTHON_LIBRARIES DIRECTORY cyclesphi DEFINITION PYTHON_LIBRARIES)
+get_directory_property(TBB_LIBRARIES DIRECTORY cyclesphi DEFINITION TBB_LIBRARIES)
+get_directory_property(USD_LIBRARIES DIRECTORY cyclesphi DEFINITION USD_LIBRARIES)
+get_directory_property(WITH_LEGACY_LIBRARIES DIRECTORY cyclesphi DEFINITION WITH_LEGACY_LIBRARIES)
+get_directory_property(ZLIB_LIBRARIES DIRECTORY cyclesphi DEFINITION ZLIB_LIBRARIES)
+get_directory_property(ZSTD_LIBRARIES DIRECTORY cyclesphi DEFINITION ZSTD_LIBRARIES)
 
 ## ANARI device library ##
-
 add_subdirectory(device)
+add_subdirectory(test)

@@ -6,11 +6,12 @@
 
 #include "SpatialField.h"
 // cycles
-#include "scene/image.h"
+//#include "scene/image.h"
+#include "scene/image_vdb.h"
 
 namespace anari_cycles {
 
-class VolumeImageLoader : public ccl::ImageLoader
+class VolumeImageLoader : public ccl::VDBImageLoader
 {
  public:
   VolumeImageLoader(const StructuredRegularField *field_ptr);
@@ -32,8 +33,16 @@ class VolumeImageLoader : public ccl::ImageLoader
 
   virtual bool is_vdb_loader() const override;
 
+  virtual bool is_simple_mesh() const override;
+
+  virtual void get_bbox(int3& min_bbox, int3& max_bbox) override;
+
+  virtual float3 index_to_world(float3 in) override;
+
  protected:
   const StructuredRegularField *p_field;
+
+  void get_transform(Transform& index_to_object);
 };
 
 } // namespace anari_cycles

@@ -22,7 +22,10 @@ struct SpatialField : public Object
 
   void finalize() override;
 
-  virtual std::unique_ptr<ccl::Geometry> makeCyclesGeometry() = 0;
+  //virtual std::unique_ptr<ccl::Geometry> makeCyclesGeometry() = 0;
+  virtual ccl::Geometry* createCyclesGeometryNode() = 0;
+  virtual void syncCyclesNode(ccl::Geometry* node) const = 0;
+
   virtual box3 bounds() const = 0;
 };
 
@@ -35,7 +38,9 @@ struct StructuredRegularField : public SpatialField
   void commitParameters() override;
   void finalize() override;
 
-  std::unique_ptr<ccl::Geometry> makeCyclesGeometry() override;
+  //std::unique_ptr<ccl::Geometry> makeCyclesGeometry() override;
+  ccl::Geometry* createCyclesGeometryNode() override;
+  void syncCyclesNode(ccl::Geometry* node) const override;
 
   box3 bounds() const override;
   bool isValid() const override;

@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "Geometry.h"
 #include "Sampler.h"
 // std
 #include <map>
@@ -15,7 +16,7 @@ namespace anari_cycles {
 
 struct Material : public Object
 {
-  Material(CyclesGlobalState *s);
+  Material(CyclesGlobalState *s, std::string sname);
   virtual ~Material() override;
 
   static Material *createInstance(
@@ -27,50 +28,49 @@ struct Material : public Object
 
  protected:
   virtual void makeGraph();
-  void connectAttributes(ccl::ShaderNode *bsdf,
-      const std::string &mode,
-      const char *input,
-      float v,
-      Sampler *sampler = nullptr);
-  void connectAttributes(ccl::ShaderNode *bsdf,
-      const std::string &mode,
-      const char *input,
-      const float3 &v,
-      Sampler *sampler = nullptr);
-  
+  //void connectAttributes(ccl::ShaderNode *bsdf,
+  //    const std::string &mode,
+  //    const char *input,
+  //    float v);
+  //void connectAttributes(ccl::ShaderNode *bsdf,
+  //    const std::string &mode,
+  //    const char *input,
+  //    const float3 &v);
+
   // Store sampler outputs for reuse
   struct SamplerOutputCache {
     Sampler::SamplerOutputs outputs;
     bool isValid{false};
   };
-  std::map<Sampler*, SamplerOutputCache> m_samplerOutputs;
+  std::map<Sampler*, SamplerOutputCache> m_samplerOutputs;  
+
+  std::string shader_name;
 
   ccl::Shader *m_shader{nullptr};
-  ccl::ShaderGraph *m_graph{nullptr};
-  struct AttributeNodes
-  {
-    ccl::ShaderOutput *attrC{nullptr};
-    ccl::ShaderOutput *attr0{nullptr};
-    ccl::ShaderOutput *attr1{nullptr};
-    ccl::ShaderOutput *attr2{nullptr};
-    ccl::ShaderOutput *attr3{nullptr};
-    ccl::ShaderOutput *attrC_sc{nullptr};
-    ccl::ShaderOutput *attr0_sc{nullptr};
-    ccl::ShaderOutput *attr1_sc{nullptr};
-    ccl::ShaderOutput *attr2_sc{nullptr};
-    ccl::ShaderOutput *attr3_sc{nullptr};
-  } m_attributeNodes;
+  //ccl::ShaderGraph *m_graph{nullptr};
+  //struct Nodes
+  //{
+  //  ccl::ShaderOutput *attrC{nullptr};
+  //  ccl::ShaderOutput *attr0{nullptr};
+  //  ccl::ShaderOutput *attr1{nullptr};
+  //  ccl::ShaderOutput *attr2{nullptr};
+  //  ccl::ShaderOutput *attr3{nullptr};
+  //  ccl::ShaderOutput *attrC_sc{nullptr};
+  //  ccl::ShaderOutput *attr0_sc{nullptr};
+  //  ccl::ShaderOutput *attr1_sc{nullptr};
+  //  ccl::ShaderOutput *attr2_sc{nullptr};
+  //  ccl::ShaderOutput *attr3_sc{nullptr};
+  //} m_attributeNodes;
 
   // Get or create sampler outputs for a given sampler
-  Sampler::SamplerOutputs getSamplerOutputs(Sampler *sampler);
+  Sampler::SamplerOutputs getSamplerOutputs(Sampler *sampler);  
 
- private:
-  void connectAttributesImpl(ccl::ShaderNode *bsdf,
-      const std::string &mode,
-      Sampler *sampler,
-      const char *input,
-      const float3 &v,
-      bool singleComponent);
+ //private:
+ // void connectAttributesImpl(ccl::ShaderNode *bsdf,
+ //     const std::string &mode,
+ //     const char *input,
+ //     const float3 &v,
+ //     bool singleComponent);
 };
 
 } // namespace anari_cycles

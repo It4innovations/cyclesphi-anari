@@ -1,0 +1,93 @@
+<?xml version="1.0"?>
+<cycles>
+	<film name="film" ui_name="film">
+		<socket name="filter_type" ui_name="Filter Type" value="blackman_harris" type_name="enum" />
+		<socket name="filter_width" ui_name="Filter Width" value="1.5" type_name="float" />
+		<socket name="mist_start" ui_name="Mist Start" value="5" type_name="float" />
+		<socket name="mist_depth" ui_name="Mist Depth" value="25" type_name="float" />
+		<socket name="mist_falloff" ui_name="Mist Falloff" value="2" type_name="float" />
+		<socket name="use_approximate_shadow_catcher" ui_name="Use Approximate Shadow Catcher" value="true" type_name="boolean" />
+	</film>
+	<integrator name="integrator" ui_name="integrator">
+		<socket name="max_bounce" ui_name="Max Bounce" value="12" type_name="int" />
+		<socket name="max_diffuse_bounce" ui_name="Max Diffuse Bounce" value="4" type_name="int" />
+		<socket name="max_glossy_bounce" ui_name="Max Glossy Bounce" value="4" type_name="int" />
+		<socket name="max_transmission_bounce" ui_name="Max Transmission Bounce" value="12" type_name="int" />
+		<socket name="max_volume_bounce" ui_name="Max Volume Bounce" value="0" type_name="int" />
+		<socket name="transparent_max_bounce" ui_name="Transparent Max Bounce" value="8" type_name="int" />
+		<socket name="ao_distance" ui_name="AO Distance" value="10" type_name="float" />
+		<socket name="volume_max_steps" ui_name="Volume Max Steps" value="64" type_name="int" />
+		<socket name="volume_step_rate" ui_name="Volume Step Rate" value="0.1" type_name="float" />
+		<socket name="filter_glossy" ui_name="Filter Glossy" value="1" type_name="float" />
+		<socket name="aa_samples" ui_name="AA Samples" value="1" type_name="int" />
+		<socket name="sample_subset_length" ui_name="Sample Subset Length" value="0" type_name="int" />
+		<socket name="use_adaptive_sampling" ui_name="Use Adaptive Sampling" value="false" type_name="boolean" />
+		<socket name="adaptive_threshold" ui_name="Adaptive Threshold" value="0.1" type_name="float" />
+		<socket name="light_sampling_threshold" ui_name="Light Sampling Threshold" value="0.01" type_name="float" />
+		<socket name="sampling_pattern" ui_name="Sampling Pattern" value="blue_noise_first" type_name="enum" />
+		<socket name="use_denoise" ui_name="Use Denoiser" value="false" type_name="boolean" />
+		<socket name="denoise_start_sample" ui_name="Start Sample to Denoise" value="16" type_name="int" />
+		<socket name="use_denoise_pass_normal" ui_name="Use Normal Pass for Denoiser" value="false" type_name="boolean" />
+		<socket name="denoiser_prefilter" ui_name="Denoiser Prefilter" value="fast" type_name="enum" />
+		<socket name="denoiser_quality" ui_name="Denoiser Quality" value="balanced" type_name="enum" />
+	</integrator>
+	<background name="background" ui_name="background">
+		<socket name="visibility" ui_name="Visibility" value="157" type_name="uint" />
+	</background>
+	<shader name="default_surface" ui_name="default_surface">
+		<diffuse_bsdf name="1184749323696" ui_name="diffuse_bsdf" />
+		<geometry name="1184691931952" ui_name="geometry" />
+		<connect from_node="1184749323696" from_socket="BSDF" from_socket_ui="BSDF" to_node="output" to_socket="surface" to_socket_ui="Surface" />
+		<connect from_node="1184691931952" from_socket="normal" from_socket_ui="Normal" to_node="1184749323696" to_socket="normal" to_socket_ui="Normal" />
+	</shader>
+	<shader name="default_volume" ui_name="default_volume">
+		<principled_volume name="1183745949440" ui_name="principled_volume">
+			<socket name="density_attribute" ui_name="Density Attribute" value="density" type_name="string" />
+			<socket name="temperature_attribute" ui_name="Temperature Attribute" value="temperature" type_name="string" />
+		</principled_volume>
+		<connect from_node="1183745949440" from_socket="volume" from_socket_ui="Volume" to_node="output" to_socket="volume" to_socket_ui="Volume" />
+	</shader>
+	<shader name="default_light" ui_name="default_light" />
+	<shader name="default_background" ui_name="default_background">
+		<socket name="volume_sampling_method" ui_name="Volume Sampling Method" value="equiangular" type_name="enum" />
+		<background_shader name="ambientIntensity" ui_name="ambientIntensity">
+			<socket name="color" ui_name="Color" value="0.113459 0.113459 0.113459 0" type_name="color" />
+		</background_shader>
+		<background_shader name="bgColor" ui_name="bgColor">
+			<socket name="color" ui_name="Color" value="0.015422 0.015422 0.015422 0" type_name="color" />
+			<socket name="strength" ui_name="Strength" value="0.9" type_name="float" />
+		</background_shader>
+		<mix_closure name="1184691515504" ui_name="Mix Shader" />
+		<light_path name="1184765368864" ui_name="Light Path" />
+		<sky_texture name="1183733767008" ui_name="Sky Texture.001">
+			<socket name="tex_mapping.type" ui_name="Type" value="point" type_name="enum" />
+			<socket name="sun_disc" ui_name="Sun Disc" value="false" type_name="boolean" />
+			<socket name="sun_size" ui_name="Sun Size" value="0" type_name="float" />
+			<socket name="sun_intensity" ui_name="Sun Intensity" value="0" type_name="float" />
+			<socket name="sun_rotation" ui_name="Sun Rotation" value="6.28319" type_name="float" />
+			<socket name="altitude" ui_name="Altitude" value="0" type_name="float" />
+		</sky_texture>
+		<texture_coordinate name="1183733028624" ui_name="texture_coordinate" />
+		<mix_closure_weight name="1184691937792" ui_name="mix_closure_weight" />
+		<connect from_node="ambientIntensity" from_socket="background" from_socket_ui="Background" to_node="1184691515504" to_socket="closure1" to_socket_ui="Closure1" />
+		<connect from_node="bgColor" from_socket="background" from_socket_ui="Background" to_node="1184691515504" to_socket="closure2" to_socket_ui="Closure2" />
+		<connect from_node="1184691515504" from_socket="closure" from_socket_ui="Closure" to_node="output" to_socket="surface" to_socket_ui="Surface" />
+		<connect from_node="1184765368864" from_socket="is_camera_ray" from_socket_ui="Is Camera Ray" to_node="1184691515504" to_socket="fac" to_socket_ui="Fac" />
+		<connect from_node="1184765368864" from_socket="is_camera_ray" from_socket_ui="Is Camera Ray" to_node="1184691937792" to_socket="fac" to_socket_ui="Fac" />
+		<connect from_node="1183733767008" from_socket="color" from_socket_ui="Color" to_node="ambientIntensity" to_socket="color" to_socket_ui="Color" />
+		<connect from_node="1183733028624" from_socket="generated" from_socket_ui="Generated" to_node="1183733767008" to_socket="vector" to_socket_ui="Vector" />
+		<connect from_node="1184691937792" from_socket="weight1" from_socket_ui="Weight1" to_node="ambientIntensity" to_socket="surface_mix_weight" to_socket_ui="SurfaceMixWeight" />
+		<connect from_node="1184691937792" from_socket="weight2" from_socket_ui="Weight2" to_node="bgColor" to_socket="surface_mix_weight" to_socket_ui="SurfaceMixWeight" />
+	</shader>
+	<shader name="default_empty" ui_name="default_empty" />
+	<light name="1184401626960" ui_name="light" geometry_type="4">
+		<socket name="used_shaders" ui_name="Shaders" value="default_background" type_name="array_node" />
+		<socket name="light_type" ui_name="Type" value="background" type_name="enum" />
+		<socket name="average_radiance" ui_name="Average Radiance" value="2.06571" type_name="float" />
+		<socket name="use_mis" ui_name="Use Mis" value="true" type_name="boolean" />
+	</light>
+	<object name="1184401614864" ui_name="object">
+		<socket name="geometry" ui_name="Geometry" value="1184401626960" type_name="node" />
+		<socket name="is_shadow_catcher" ui_name="Shadow Catcher" value="true" type_name="boolean" />
+	</object>
+</cycles>

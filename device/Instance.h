@@ -23,9 +23,18 @@ struct Instance : public Object
   bool isValid() const override;
 
  private:
+#if 0
   helium::IntrusivePtr<Group> m_group;
   helium::ChangeObserverPtr<Array1D> m_xfmArray;
   math::mat4 m_xfm;
+#endif
+
+  helium::ChangeObserverPtr<Array1D> m_xfmArray;
+  math::mat4 m_xfm;
+  helium::IntrusivePtr<Group> m_group;
+  //UniformAttributes m_uniformAttributes;
+  helium::ChangeObserverPtr<Array1D> m_idArray;
+  uint32_t m_id{ ~0u };
 };
 
 } // namespace anari_cycles

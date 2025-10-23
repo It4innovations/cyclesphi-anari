@@ -23,6 +23,31 @@ void Group::commitParameters()
   m_lightData = getParamObject<ObjectArray>("light");
 }
 
+bool Group::containsTriangleGeometry() const
+{
+    return !m_surfacesTriangle.empty();
+}
+
+bool Group::containsCurveGeometry() const
+{
+    return !m_surfacesCurve.empty();
+}
+
+bool Group::containsUserGeometry() const
+{
+    return !m_surfacesUser.empty();
+}
+
+bool Group::containsVolumes() const
+{
+    return m_volumes.size() > 0;
+}
+
+bool Group::containsLights() const
+{
+    return m_lights.size() > 0;
+}
+
 void Group::addGroupToCurrentCyclesScene(const math::mat4 &xfm) const
 {
   auto &state = *deviceState();
@@ -44,7 +69,6 @@ void Group::addGroupToCurrentCyclesScene(const math::mat4 &xfm) const
     });
   }
 
-#if 0
   if (m_volumeData) {
     auto **volumesBegin = (Volume **)m_volumeData->handlesBegin();
     auto **volumesEnd = (Volume **)m_volumeData->handlesEnd();
@@ -56,10 +80,9 @@ void Group::addGroupToCurrentCyclesScene(const math::mat4 &xfm) const
       }
       auto *o = state.scene->create_node<ccl::Object>();
       o->set_geometry(v->cyclesGeometry());
-      o->set_tfm(xfm);
+      o->set_tfm(cxfm);
     });
   }
-#endif
 
   if (m_lightData) {
     auto **lightsBegin = (Light **)m_lightData->handlesBegin();

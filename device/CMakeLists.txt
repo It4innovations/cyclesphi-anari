@@ -7,13 +7,20 @@ project(anari_library_cycles LANGUAGES CXX)
 
 ## Dependencies ##
 
-find_package(anari 0.13.0 REQUIRED)
+find_package(anari 0.15.0 REQUIRED)
 
 ## Cycles definitions ##
 
 add_definitions(
   -DCCL_NAMESPACE_BEGIN=namespace\ ccl\ {
   -DCCL_NAMESPACE_END=}
+)
+
+add_definitions(
+	-DWITH_PUGIXML
+	-DWITH_SYSTEM_PUGIXML
+	-DWITH_OPENVDB
+	-DWITH_NANOVDB
 )
 
 ## Build device library ##
@@ -28,25 +35,98 @@ generate_export_header(${PROJECT_NAME}
 target_sources(${PROJECT_NAME}
 PRIVATE
   CyclesGlobalState.cpp
+  CyclesGlobalState.h
+
+  #camera
   Camera.cpp
+  Camera.h
+
+  #device
   Device.cpp
+  Device.h
+
+  #frame
   Frame.cpp
+  Frame.h
   FrameOutputDriver.cpp
+  FrameOutputDriver.h
+
+  #scene/surface/geometry
   Geometry.cpp
+  Geometry.h
+	Cone.cpp
+	Cone.h
+	Curve.cpp
+	Curve.h
+	Cylinder.cpp
+	Cylinder.h
+	Geometry.cpp
+	Geometry.h
+	Quad.cpp
+	Quad.h
+	Sphere.cpp
+	Sphere.h
+	Triangle.cpp
+	Triangle.h
+
+  #scene
   Group.cpp
+  Group.h
   Instance.cpp
-  Library.cpp
+  Instance.h  
+
+  #scene/light
   Light.cpp
+  Light.h
+
+  #scene/surface/material/
   Material.cpp
+  Material.h
+
+  #library
+  Library.cpp
+
+  #object
   Object.cpp
+  Object.h  
+
+  #renderer
   Renderer.cpp
+  Renderer.h
+
+  #scene/surface/material/sampler
   Sampler.cpp
+  Sampler.h
   SamplerImageLoader.cpp
+  SamplerImageLoader.h
+
+  #scene/volume/spatial_field/
   SpatialField.cpp
+  SpatialField.h
+
+  #scene/surface
   Surface.cpp
+  Surface.h
+
+  #scene/volume/
   Volume.cpp
+  Volume.h
   VolumeImageLoader.cpp
+  VolumeImageLoader.h
+
+  #scene/
   World.cpp
+  World.h
+
+  #array
+  Array.h
+
+  #utility
+  cycles_math.h
+  colorMapHelpers.h
+
+  ${CMAKE_SOURCE_DIR}/cyclesphi/src/app/cycles_xml_bin.cpp
+  ${CMAKE_SOURCE_DIR}/cyclesphi/src/app/cycles_xml_bin.h
 )
 
 get_target_property(CYCLES_INCLUDE_DIRECTORIES cycles_bvh INCLUDE_DIRECTORIES)
@@ -55,14 +135,12 @@ target_include_directories(${PROJECT_NAME}
 PRIVATE
   ${CMAKE_CURRENT_LIST_DIR}
   ${CYCLES_INCLUDE_DIRECTORIES}
-  ${CMAKE_SOURCE_DIR}/cycles/src
+  ${CMAKE_SOURCE_DIR}/cyclesphi/src
   $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
 )
 
-target_link_libraries(${PROJECT_NAME}
-PRIVATE
-  anari::helium
-  anari::anari
+###################LIB######################
+set(LIB
   cycles_device
   cycles_kernel
   cycles_scene
@@ -71,9 +149,38 @@ PRIVATE
   cycles_subd
   cycles_graph
   cycles_util
-  extern_sky
-  OpenImageIO::OpenImageIO
+
+  ${ALEMBIC_LIBRARIES}
+  ${BOOST_LIBRARIES}
+  ${EMBREE_LIBRARIES}
+  ${Epoxy_LIBRARIES}
+  ${OPENCOLORIO_LIBRARIES}
+  ${OPENEXR_LIBRARIES}
+  ${OPENIMAGEIO_LIBRARIES}
+  ${OPENJPEG_LIBRARIES}
+  ${OPENPGL_LIBRARIES}
+  ${OPENSUBDIV_LIBRARIES}
+  ${OSL_LIBRARIES}
+  ${PTHREADS_LIBRARIES}
+  ${PUGIXML_LIBRARIES}
+  ${PYTHON_LIBRARIES}
+  ${TBB_LIBRARIES}
+  ${USD_LIBRARIES}
+  ${ZLIB_LIBRARIES}
+  ${ZSTD_LIBRARIES}
 )
+
+target_link_libraries(${PROJECT_NAME}
+PRIVATE
+  anari::helium
+  anari::anari
+  ${LIB}
+)
+
+# Link the Windows version library
+if (WIN32)
+  target_link_libraries(${PROJECT_NAME} PRIVATE version)
+endif()
 
 ## ANARI query code generation ##
 
