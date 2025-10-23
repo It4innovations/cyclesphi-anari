@@ -1,3 +1,6 @@
 [submodule "cycles"]
 	path = cycles
 	url = https://github.com/blender/cycles.git
+[submodule "cyclesphi"]
+	path = cyclesphi
+	url = https://github.com/It4innovations/cyclesphi.git
