@@ -32,7 +32,11 @@ struct MatteMaterial : public Material
   float m_opacity{1.f};
   helium::ChangeObserverPtr<Sampler> m_opacitySampler;
 
+#ifdef _WIN32  
   helium::AlphaMode m_mode{helium::AlphaMode::AOPAQUE};
+#else
+  helium::AlphaMode m_mode{helium::AlphaMode::OPAQUE};
+#endif    
 };
 
 MatteMaterial::MatteMaterial(CyclesGlobalState *s) 
@@ -120,7 +124,11 @@ struct PhysicallyBasedMaterial : public Material
   float m_transmission{0.f};
   float m_ior{1.5f};
 
+#ifdef _WIN32  
   helium::AlphaMode m_mode{helium::AlphaMode::AOPAQUE};
+#else
+  helium::AlphaMode m_mode{helium::AlphaMode::OPAQUE};
+#endif  
 };
 
 PhysicallyBasedMaterial::PhysicallyBasedMaterial(CyclesGlobalState *s)
@@ -298,7 +306,20 @@ void Material::makeGraph()
   m_attributeNodes.attr3_sc = attr3_sc->output("Red");
 #endif
 
-  const string xml_path = path_join(path_get("anari"), shader_name + ".xml");
+  string xml_path;
+
+  const char* env_xml = getenv("CYCLES_XML_PATH");
+  if (env_xml) {
+      //filepath_xml = std::string(env_xml);
+      //filepath_xml = path_join(env_xml, "cycles_default_scene.xml");
+
+      xml_path = path_join(env_xml, shader_name + ".xml");
+  }
+  else {
+      //filepath_xml = path_join(path_get("anari"), "cycles_default_scene.xml");
+
+      xml_path = path_join(path_get("anari"), shader_name + ".xml");
+  }  
   xml_set_material_to_shader2(deviceState()->scene, m_shader, xml_path.c_str());
 }
 

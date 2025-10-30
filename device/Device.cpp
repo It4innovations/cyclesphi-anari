@@ -403,7 +403,8 @@ void CyclesDevice::initDevice()
   std::string filepath_xml;
   const char* env_xml = getenv("CYCLES_XML_PATH");
   if (env_xml) {
-      filepath_xml = std::string(env_xml);
+      //filepath_xml = std::string(env_xml);
+      filepath_xml = path_join(env_xml, "cycles_default_scene.xml");
   }
   else {
       filepath_xml = path_join(path_get("anari"), "cycles_default_scene.xml");

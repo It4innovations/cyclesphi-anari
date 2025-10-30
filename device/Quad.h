@@ -32,7 +32,7 @@
 #pragma once
 
 #include "Geometry.h"
-#include "array.h"
+#include "Array.h"
 
 namespace anari_cycles {
 
