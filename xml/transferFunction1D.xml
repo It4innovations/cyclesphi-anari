@@ -19,7 +19,7 @@
 		<socket ui_name="Attribute" value="density"/>
 	</attribute>
 	<map_range name="Map Range">
-		<socket ui_name="Clamp" value="true"/>
+		<socket ui_name="Clamp" value="false"/>
 		<socket ui_name="Range Type" value="0"/>
 		<socket ui_name="Value" value="1.0"/>
 		<socket ui_name="From Min" value="0.0"/>
@@ -40,9 +40,17 @@
 		<socket ui_name="Interpolate" value="true"/>
 		<socket ui_name="Fac" value="0.5"/>
 	</rgb_ramp>
+	<math name="Math">
+		<socket ui_name="Type" value="3"/>
+		<socket ui_name="Use Clamp" value="false"/>
+		<socket ui_name="Value1" value="0.5"/>
+		<socket ui_name="Value2" value="0.5"/>
+		<socket ui_name="Value3" value="0.5"/>
+	</math>
 	<connect from_node="Principled Volume" from_socket_ui="Volume" to_node="Material Output" to_socket_ui="Volume"/>
 	<connect from_node="Attribute" from_socket_ui="Fac" to_node="Map Range" to_socket_ui="Value"/>
 	<connect from_node="Map Range" from_socket_ui="Result" to_node="Color Ramp" to_socket_ui="Fac"/>
 	<connect from_node="Color Ramp" from_socket_ui="Color" to_node="Principled Volume" to_socket_ui="Color"/>
-	<connect from_node="Color Ramp" from_socket_ui="Alpha" to_node="Principled Volume" to_socket_ui="Density"/>
+	<connect from_node="Color Ramp" from_socket_ui="Alpha" to_node="Math" to_socket_ui="Value1"/>
+	<connect from_node="Math" from_socket_ui="Value" to_node="Principled Volume" to_socket_ui="Density"/>
 </shader>

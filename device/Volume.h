@@ -83,10 +83,10 @@ struct TransferFunction1D : public Volume
 
   ccl::Shader *cyclesShader();
 
-	void cleanupCyclesNode();
+  void cleanupCyclesNode();
 
-	ccl::Geometry* m_cyclesGeometryNode{ nullptr };
-	//bool m_fieldHandleChanged{ false };
+  ccl::Geometry* m_cyclesGeometryNode{ nullptr };
+  bool m_fieldHandleChanged{ false };
 };
 
 } // namespace anari_cycles

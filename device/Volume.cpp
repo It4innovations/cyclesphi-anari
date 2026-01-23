@@ -177,7 +177,12 @@ void TransferFunction1D::commitParameters()
     m_opacity = getParamObject<Array1D>("opacity");
     m_uniformOpacity = getParam<float>("opacity", 1.f) * m_uniformColor[3];
     m_unitDistance = getParam<float>("unitDistance", 1.f);
+    
+    //m_field = getParamObject<SpatialField>("value");
+    auto *prevField = m_field.get();
     m_field = getParamObject<SpatialField>("value");
+    m_fieldHandleChanged = prevField != m_field.get();
+
     getParam("valueRange", ANARI_FLOAT32_VEC2, &m_valueRange);
     getParam("valueRange", ANARI_FLOAT32_BOX1, &m_valueRange);
     double valueRange_d[2] = { 0.0, 1.0 };
@@ -296,17 +301,18 @@ void TransferFunction1D::finalize() {
 
     auto* state = deviceState();    
 
-    //if (m_fieldHandleChanged) 
+    if (m_fieldHandleChanged) 
     {
         cleanupCyclesNode();
         if (m_field)
             m_cyclesGeometryNode = m_field->createCyclesGeometryNode();
     }
 
-    if (isValid()) {
-        m_field->syncCyclesNode(m_cyclesGeometryNode);
-        //if (m_fieldHandleChanged) 
+    if (isValid()) {        
+        if (m_fieldHandleChanged)
         {
+            m_field->syncCyclesNode(m_cyclesGeometryNode);
+
             ccl::array<ccl::Node*> used_shaders;
             used_shaders.push_back_slow(cyclesShader());
             m_cyclesGeometryNode->set_used_shaders(used_shaders);
@@ -314,7 +320,7 @@ void TransferFunction1D::finalize() {
         m_cyclesGeometryNode->tag_update(state->scene, true);
     }
 
-    //m_fieldHandleChanged = false;
+    m_fieldHandleChanged = false;
 
     state->objectUpdates.lastSceneChange = helium::newTimeStamp();
 
