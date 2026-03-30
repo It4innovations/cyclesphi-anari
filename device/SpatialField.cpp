@@ -1,8 +1,6 @@
 // Copyright 2025 Jefferson Amstutz
 // SPDX-License-Identifier: Apache-2.0
 
-// std
-#include <limits>
 // ours
 #include "SpatialField.h"
 #include "VolumeImageLoader.h"
@@ -80,8 +78,6 @@ void StructuredRegularField::syncCyclesNode(ccl::Geometry* node) const
   auto* volume = (ccl::Volume*)node;
   volume->name = ccl::ustring("ANARI Volume");
 
-  //volume->set_clipping(-std::numeric_limits<float>::max());
-  volume->set_clipping(0.0f);
   volume->set_step_size(0.0f);
   volume->set_object_space(true);
 #if 0

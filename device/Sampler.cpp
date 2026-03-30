@@ -171,9 +171,10 @@ Sampler::SamplerOutputs Sampler::createNodeGraph(ccl::ShaderGraph *graph,
     // This allows for arbitrary linear transformations of the color channels,
     // including swizzling operations like remapping green to red channel
     if (hasOutTransform) {
-      // Create separate RGB nodes to extract individual components
-      auto *separateRGB = graph->create_node<ccl::SeparateRGBNode>();
-      graph->connect(colorOutput, separateRGB->input("Image"));
+      // Use generic color nodes in RGB mode for compatibility with this Cycles version.
+      auto *separateRGB = graph->create_node<ccl::SeparateColorNode>();
+      separateRGB->set_color_type(ccl::NODE_COMBSEP_COLOR_RGB);
+      graph->connect(colorOutput, separateRGB->input("Color"));
       
       // Extract the 3x3 portion of the transform matrix for color transformation
       // outTransformMat is column-major: [x_col, y_col, z_col, w_col]
@@ -235,17 +236,17 @@ Sampler::SamplerOutputs Sampler::createNodeGraph(ccl::ShaderGraph *graph,
       blueMath3->set_value2(m22);
       
       // Connect RGB components to multiply nodes
-      graph->connect(separateRGB->output("R"), redMath1->input("Value1"));
-      graph->connect(separateRGB->output("G"), redMath2->input("Value1"));
-      graph->connect(separateRGB->output("B"), redMath3->input("Value1"));
+      graph->connect(separateRGB->output("Red"), redMath1->input("Value1"));
+      graph->connect(separateRGB->output("Green"), redMath2->input("Value1"));
+      graph->connect(separateRGB->output("Blue"), redMath3->input("Value1"));
       
-      graph->connect(separateRGB->output("R"), greenMath1->input("Value1"));
-      graph->connect(separateRGB->output("G"), greenMath2->input("Value1"));
-      graph->connect(separateRGB->output("B"), greenMath3->input("Value1"));
+      graph->connect(separateRGB->output("Red"), greenMath1->input("Value1"));
+      graph->connect(separateRGB->output("Green"), greenMath2->input("Value1"));
+      graph->connect(separateRGB->output("Blue"), greenMath3->input("Value1"));
       
-      graph->connect(separateRGB->output("R"), blueMath1->input("Value1"));
-      graph->connect(separateRGB->output("G"), blueMath2->input("Value1"));
-      graph->connect(separateRGB->output("B"), blueMath3->input("Value1"));
+      graph->connect(separateRGB->output("Red"), blueMath1->input("Value1"));
+      graph->connect(separateRGB->output("Green"), blueMath2->input("Value1"));
+      graph->connect(separateRGB->output("Blue"), blueMath3->input("Value1"));
       
       // Chain additions for each color component
       graph->connect(redMath1->output("Value"), redAdd1->input("Value1"));
@@ -264,12 +265,13 @@ Sampler::SamplerOutputs Sampler::createNodeGraph(ccl::ShaderGraph *graph,
       graph->connect(blueMath3->output("Value"), blueAdd2->input("Value2"));
       
       // Combine back into RGB
-      auto *combineRGB = graph->create_node<ccl::CombineRGBNode>();
-      graph->connect(redAdd2->output("Value"), combineRGB->input("R"));
-      graph->connect(greenAdd2->output("Value"), combineRGB->input("G"));
-      graph->connect(blueAdd2->output("Value"), combineRGB->input("B"));
+      auto *combineRGB = graph->create_node<ccl::CombineColorNode>();
+      combineRGB->set_color_type(ccl::NODE_COMBSEP_COLOR_RGB);
+      graph->connect(redAdd2->output("Value"), combineRGB->input("Red"));
+      graph->connect(greenAdd2->output("Value"), combineRGB->input("Green"));
+      graph->connect(blueAdd2->output("Value"), combineRGB->input("Blue"));
       
-      colorOutput = combineRGB->output("Image");
+      colorOutput = combineRGB->output("Color");
     }
     
 
