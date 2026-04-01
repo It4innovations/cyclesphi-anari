@@ -181,6 +181,9 @@ void World::setCyclesWorldObjects()
   scene->geometry_manager->tag_update(scene, GeometryManager::UPDATE_ALL);
   scene->light_manager->tag_update(scene, LightManager::UPDATE_ALL);
   scene->shader_manager->tag_update(scene, ShaderManager::UPDATE_ALL);
+
+  // auto &state = *deviceState();
+  //state.session->update_scene_simple();
 }
 
 Light *World::findFirstHDRILight() const
@@ -246,6 +249,8 @@ box3 World::bounds() const
 {
   box3 b = empty_box3();
 
+#if 0
+
   if (m_zeroSurfaceData || m_zeroVolumeData)
     extend(b, m_zeroInstance->bounds());
 
@@ -257,6 +262,21 @@ box3 World::bounds() const
       extend(b, i->bounds());
     });
   }
+#else
+  ccl::BoundBox bbox_scene = ccl::BoundBox::empty;
+  for (ccl::Object *object : deviceState()->scene->objects) {
+    //object->compute_bounds(false);
+    bbox_scene.grow(object->bounds);
+  }
+
+  b.lower[0] = 0;//bbox_scene.min[0];
+  b.lower[1] = 0; // bbox_scene.min[1];
+  b.lower[2] = 0; // bbox_scene.min[2];
+  b.upper[0] = 59; // bbox_scene.max[0];
+  b.upper[1] = 59; // bbox_scene.max[1];
+  b.upper[2] = 299; // bbox_scene.max[2];
+
+#endif
 
   return b;
 }

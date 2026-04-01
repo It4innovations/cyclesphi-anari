@@ -57,6 +57,17 @@ void Frame::finalize()
   m_pixelBuffer.resize(numPixels * m_perPixelBytes);
   std::fill(m_pixelBuffer.begin(), m_pixelBuffer.end(), ~0);
   m_depthBuffer.resize(m_depthType == ANARI_FLOAT32 ? numPixels : 0);
+
+  //TODO
+  //m_world->setCyclesWorldObjects();
+  //auto &state = *deviceState();
+  //state.session->update_scene_simple();
+  //state.session->reset(state.session_params, state.buffer_params);
+  //state.sessionSamples = 0;
+  //state.session->set_samples(0);  
+  //state.session->start();
+  //state.session->wait();
+  //state.waitOnCurrentFrame();
 }
 
 bool Frame::getProperty(const std::string_view &name,

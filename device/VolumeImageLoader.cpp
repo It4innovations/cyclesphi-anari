@@ -67,8 +67,7 @@ bool VolumeImageLoader::load_metadata(
     const ImageDeviceFeatures &features, ImageMetaData &metadata)
 {
   metadata.byte_size = p_field->m_data->totalSize()
-      * anari::sizeOf(p_field->m_data->elementType());
-  metadata.channels = 1;
+      * anari::sizeOf(p_field->m_data->elementType());  
 
   // TODO: MJ
   //metadata.transform_3d = //transform_identity();
@@ -79,28 +78,27 @@ bool VolumeImageLoader::load_metadata(
   // TODO: MJ
   Transform index_to_object;
   get_transform(index_to_object);
-  index_to_object = transform_inverse(index_to_object);
+  //index_to_object = transform_inverse(index_to_object);
   metadata.transform_3d = index_to_object;
 
-  metadata.use_transform_3d = true;
+  metadata.use_transform_3d = false;
 
-  metadata.width = p_field->m_dims[0];
-  metadata.height = p_field->m_dims[1];
+  metadata.width = metadata.byte_size;
+  //p_field->m_dims[0];
+  metadata.height = 1;
+  //p_field->m_dims[1];
   //metadata.depth = p_field->m_dims[2];
 
   switch (p_field->m_data->elementType()) {
-  case (ANARI_UFIXED8):
-    metadata.type = IMAGE_DATA_TYPE_BYTE;
-    break;
-  case (ANARI_UFIXED16):
-    metadata.type = IMAGE_DATA_TYPE_USHORT;
-    break;
   case (ANARI_FLOAT32):
-    metadata.type = IMAGE_DATA_TYPE_FLOAT;
+    metadata.type = IMAGE_DATA_TYPE_RAW3D_FLOAT;
+    metadata.channels = 1;
     break;
-  case (ANARI_FIXED16):
-  case (ANARI_FLOAT64):
-  case (ANARI_UNKNOWN):
+  case (ANARI_FLOAT32_VEC3):
+    metadata.type = IMAGE_DATA_TYPE_RAW3D_FLOAT3;
+    metadata.channels = 3;
+    break;
+  default:
     // TODO throw error
     std::cerr << "Unsupported voxel data type\n";
     return false;
@@ -156,11 +154,11 @@ void VolumeImageLoader::get_bbox(int3& min_bbox, int3& max_bbox)
 
 float3 VolumeImageLoader::index_to_world(float3 index)
 {
-    //return make_float3((float)index[0], (float)index[1], (float)index[2]);
+    return make_float3((float)index[0], (float)index[1], (float)index[2]);
 
     Transform index_to_object;
     get_transform(index_to_object);
-    //index_to_object = transform_inverse(index_to_object);
+    index_to_object = transform_inverse(index_to_object);
 
     return ccl::transform_point(&index_to_object, index);
 

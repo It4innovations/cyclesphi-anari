@@ -285,11 +285,17 @@ void TransferFunction1D::commitParameters()
         m_rgbRampNode->get_ramp_alpha().resize(m_opacity->size());
 
         for (size_t i = 0; i < m_opacity->size(); ++i) {
+          if (i == 0)
+            m_rgbRampNode->get_ramp_alpha()[i] =
+                0.f; // force zero opacity at the start of the ramp to avoid
+                     // artifacts when the first color is not fully transparent
+          else
             m_rgbRampNode->get_ramp_alpha()[i] = opacityData[i];
         }
     }
 
-    m_shader->tag_update(deviceState()->scene);
+    //TODO:MJ - disabled it - it call rebuild octree everytime
+    //m_shader->tag_update(deviceState()->scene);
 }
 
 void TransferFunction1D::finalize() {

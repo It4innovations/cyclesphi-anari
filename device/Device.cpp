@@ -340,28 +340,28 @@ void CyclesDevice::initDevice()
   } 
   state.session_params.device = selectedDevice;
 #else
-  auto *useGPU = getenv("CYCLES_ANARI_USE_GPU");
-  //state.session_params.device.type = useGPU ? ccl::DEVICE_OPTIX : ccl::DEVICE_CPU;
-  state.session_params.device.type = ccl::DEVICE_CPU;
-  if (useGPU) {
-      printf("useGPU: %s\n", useGPU);
+    auto *useGPU = getenv("CYCLES_ANARI_USE_GPU");
+    //state.session_params.device.type = useGPU ? ccl::DEVICE_OPTIX : ccl::DEVICE_CPU;
+    ccl::DeviceType device_type = ccl::DEVICE_CPU;
+    if (useGPU) {
+        printf("useGPU: %s\n", useGPU);
+        /* find matching device */
+        device_type = ccl::Device::type_from_string(useGPU);
+    }
 
-      /* find matching device */
-      ccl::DeviceType device_type = ccl::Device::type_from_string(useGPU);
-      std::vector<ccl::DeviceInfo> devices = ccl::Device::available_devices((ccl::DeviceTypeMask)(1 << device_type));
+    std::vector<ccl::DeviceInfo> devices = ccl::Device::available_devices((ccl::DeviceTypeMask)(1 << device_type));
 
-      bool device_available = false;
-      if (!devices.empty()) {
-          state.session_params.device = devices.front();
-          device_available = true;
-      }
+    bool device_available = false;
+    if (!devices.empty()) {
+        state.session_params.device = devices.front();
+        device_available = true;
+    }
 
-      /* handle invalid configurations */
-      if (state.session_params.device.type == ccl::DEVICE_NONE || !device_available) {
-          fprintf(stderr, "Unknown device: %s\n", useGPU);
-          exit(-1);
-      }
-  }
+    /* handle invalid configurations */
+    if (state.session_params.device.type == ccl::DEVICE_NONE || !device_available) {
+        fprintf(stderr, "Unknown device: %s\n", useGPU);
+        exit(-1);
+    }
 #endif
   state.session_params.background = false;
   state.session_params.headless = false;
