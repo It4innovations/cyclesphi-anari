@@ -5,10 +5,10 @@
 // std
 #include <algorithm>
 // cycles
-#include "scene/object.h"
-#include "scene/background.h"
 #include "scene/light.h"
-
+#include "scene/background.h"
+#include "scene/devicescene.h"
+#include "scene/object.h"
 namespace anari_cycles {
 
 World::World(CyclesGlobalState *s)
@@ -46,24 +46,6 @@ World::World(CyclesGlobalState *s)
 }
 
 World::~World() = default;
-
-bool World::getProperty(const std::string_view &name,
-    ANARIDataType type,
-    void *ptr,
-    uint64_t size,
-    uint32_t flags)
-{
-  if (name == "bounds" && type == ANARI_FLOAT32_BOX3) {
-    auto b = bounds();
-    anari_vec::float3 r[2];
-    r[0] = {b.lower.x, b.lower.y, b.lower.z};
-    r[1] = {b.upper.x, b.upper.y, b.upper.z};
-    std::memcpy(ptr, &r[0], anari::sizeOf(type));
-    return true;
-  }
-
-  return Object::getProperty(name, type, ptr, size, flags);
-}
 
 void World::commitParameters()
 {
@@ -192,22 +174,23 @@ Light *World::findFirstHDRILight() const
   if (m_zeroLightData) {
     auto **lightsBegin = (Light **)m_zeroLightData->handlesBegin();
     auto **lightsEnd = (Light **)m_zeroLightData->handlesEnd();
-    
-      for (Light **lightPtr = lightsBegin; lightPtr != lightsEnd; ++lightPtr) {
-          if (Light *light = *lightPtr; light) {
-            // Check if this is an HDRI light - we'll do this by checking the cycles light type
-            if (light->cyclesLight()->get_light_type() == ccl::LIGHT_BACKGROUND) {
-              return light;
-            }
-          }
+
+    for (Light **lightPtr = lightsBegin; lightPtr != lightsEnd; ++lightPtr) {
+      if (Light *light = *lightPtr; light) {
+        // Check if this is an HDRI light - we'll do this by checking the cycles
+        // light type
+        if (light->cyclesLight()->get_light_type() == ccl::LIGHT_BACKGROUND) {
+          return light;
         }
+      }
     }
-  
+  }
+
   // Check lights in instances
   if (m_instanceData) {
     auto **instancesBegin = (Instance **)m_instanceData->handlesBegin();
     auto **instancesEnd = (Instance **)m_instanceData->handlesEnd();
-    
+
     for (auto **instPtr = instancesBegin; instPtr != instancesEnd; ++instPtr) {
       Instance *instance = *instPtr;
       if (instance && instance->group()) {
@@ -215,11 +198,14 @@ Light *World::findFirstHDRILight() const
         if (group->lightData()) {
           auto **lightsBegin = (Light **)group->lightData()->handlesBegin();
           auto **lightsEnd = (Light **)group->lightData()->handlesEnd();
-          
-          for (Light **lightPtr = lightsBegin; lightPtr != lightsEnd; ++lightPtr) {
+
+          for (Light **lightPtr = lightsBegin; lightPtr != lightsEnd;
+              ++lightPtr) {
             if (Light *light = *lightPtr; light) {
-              // Check if this is an HDRI light - we'll do this by checking the cycles light type
-              if (light->cyclesLight()->get_light_type() == ccl::LIGHT_BACKGROUND) {
+              // Check if this is an HDRI light - we'll do this by checking the
+              // cycles light type
+              if (light->cyclesLight()->get_light_type()
+                  == ccl::LIGHT_BACKGROUND) {
                 return light;
               }
             }

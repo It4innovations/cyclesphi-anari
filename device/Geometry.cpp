@@ -15,6 +15,68 @@
 
 namespace anari_cycles {
 
+// Shared mesh attribute helpers ///////////////////////////////////////////////
+
+static void setMeshVertexNormal(
+    ccl::Mesh *mesh, const helium::IntrusivePtr<Array1D> &array)
+{
+  if (!array)
+    return;
+
+  ustring name = ustring("vertex.normal");
+  Attribute *attr = mesh->attributes.add(ATTR_STD_VERTEX_NORMAL, name);
+  float3 *dst = attr->data_float3();
+  std::transform(array->beginAs<anari_vec::float3>(),
+      array->endAs<anari_vec::float3>(),
+      dst,
+      [](const anari_vec::float3 &v) {
+        return make_float3(v[0], v[1], v[2]);
+      });
+}
+
+static void setMeshVertexColor(
+    ccl::Mesh *mesh, const helium::IntrusivePtr<Array1D> &array)
+{
+  if (!array)
+    return;
+
+  const void *src = array->data();
+  anari::DataType type = array->elementType();
+
+  Attribute *attr = mesh->attributes.add(
+      ustring("vertex.color"), ccl::TypeColor, ATTR_ELEMENT_VERTEX);
+  attr->std = ATTR_STD_VERTEX_COLOR;
+  float3 *dst = attr->data_float3();
+  for (uint32_t i = 0; i < array->size(); i++) {
+    auto c = anari::anariTypeInvoke<anari_vec::float4, convert_toFloat4>(
+        type, src, i);
+    dst[i] = make_float3(c[0], c[1], c[2]);
+  }
+}
+
+static void setMeshVertexAttribute(ccl::Mesh *mesh,
+    const helium::IntrusivePtr<Array1D> &array,
+    const char *name)
+{
+  if (!array)
+    return;
+
+  anari::DataType type = array->elementType();
+  const void *src = array->data();
+
+  Attribute *attr =
+      mesh->attributes.add(ustring(name), ccl::TypeFloat4, ATTR_ELEMENT_VERTEX);
+  float4 *dst = attr->data_float4();
+  for (size_t i = 0; i < array->size(); i++) {
+    auto r = anari::anariTypeInvoke<anari_vec::float4, convert_toFloat4>(
+        type, src, i);
+    dst[i].x = r[0];
+    dst[i].y = r[1];
+    dst[i].z = r[2];
+    dst[i].w = r[3];
+  }
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // Geometry definitions ///////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -25,6 +87,7 @@ Geometry::~Geometry() = default;
 
 Geometry *Geometry::createInstance(std::string_view type, CyclesGlobalState *s)
 {
+
     if (type == "triangle")
         return new Triangle(s);
     else if (type == "quad")
@@ -37,10 +100,6 @@ Geometry *Geometry::createInstance(std::string_view type, CyclesGlobalState *s)
         return new Cone(s);
     else if (type == "curve")
         return new Curve(s);
-//#ifdef VISRTX_USE_NEURAL
-//    else if (subtype == "neural")
-//        return new Neural(d);
-//#endif
     else
         return (Geometry *)new UnknownObject(ANARI_GEOMETRY, type, s);
 }
@@ -98,5 +157,3 @@ void Geometry::commitAttributes(const char* _prefix, GeometryAttributes& attrs)
 //}
 
 } // namespace anari_cycles
-
-CYCLES_ANARI_TYPEFOR_DEFINITION(anari_cycles::Geometry *);

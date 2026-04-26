@@ -202,7 +202,7 @@ void Cylinder::setCylinders(ccl::Hair* hair) const
       radius = m_radius->beginAs<float>();
 
     //m_aabbs.resize(indices.size());
-    hair->reserve_curves(indices.size(), indices.size() * 2);
+    hair->resize_curves(indices.size(), indices.size() * 2);
     hair->curve_shape = CURVE_RIBBON;// CURVE_THICK; //CURVE_RIBBON
 
     const auto *posBegin = m_vertex->beginAs<anari_vec::vec3>();
@@ -216,6 +216,11 @@ void Cylinder::setCylinders(ccl::Hair* hair) const
     //      return box3(glm::min(v0, v1) - r, glm::max(v0, v1) + r);
     //    });
 
+    auto& curve_keys = hair->get_curve_keys();
+    auto& curve_radius = hair->get_curve_radius();
+    auto& curve_first_key = hair->get_curve_first_key();
+    auto& curve_shader = hair->get_curve_shader();
+    
     std::for_each(
         indices.begin(), indices.end(), [&](const uint2& c) {
             const float r =
@@ -223,10 +228,13 @@ void Cylinder::setCylinders(ccl::Hair* hair) const
             const anari_vec::vec3 &v0 = posBegin[c.x];
             const anari_vec::vec3 &v1 = posBegin[c.y];
 
-            hair->add_curve_key(make_float3(v0[0], v0[1], v0[2]), r);
-            hair->add_curve_key(make_float3(v1[0], v1[1], v1[2]), r);
+            curve_keys[cylinderID * 2 + 0] = make_float3(v0[0], v0[1], v0[2]);
+            curve_keys[cylinderID * 2 + 1] = make_float3(v1[0], v1[1], v1[2]);
+            curve_radius[cylinderID * 2 + 0] = r;
+            curve_radius[cylinderID * 2 + 1] = r;
 
-            hair->add_curve(cylinderID * 2, 0);
+            curve_first_key[cylinderID] = cylinderID * 2;
+            curve_shader[cylinderID] = 0;
 
             cylinderID++;
         });

@@ -35,6 +35,21 @@ namespace anari_cycles {
 		bool m_runAsync{ false };
 #endif
 
+#if 0
+		private:
+		struct {
+			int background : 1;
+			int ambientLight : 1;
+			int denoise : 1;
+		} m_needsUpdateStatus = {true, true, true};
+
+		math::float4 m_backgroundColor;
+		math::float3 m_ambientColor;
+		float m_ambientIntensity;
+		bool m_runAsync{false};
+		bool m_denoise{false};
+#endif
+
 		anari_vec::vec4 m_bgColor{ 0.f, 0.f, 0.f, 1.f };
 		int m_spp{ 1 };
 		int m_maxRayDepth{ 0 };

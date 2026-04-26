@@ -13,7 +13,8 @@ namespace anari_cycles {
 
 struct Frame;
 
-struct FrameOutputDriver : public ccl::OutputDriver {
+struct FrameOutputDriver : public ccl::OutputDriver
+{
   FrameOutputDriver();
 
   void write_render_tile(const Tile &tile) override;
@@ -27,9 +28,12 @@ struct FrameOutputDriver : public ccl::OutputDriver {
  private:
   void extractColorPass(const Tile &tile);
   void extractDepthPass(const Tile &tile);
+  void extractNormalPass(const Tile &tile);
+  void extractAlbedoPass(const Tile &tile);
+  void extractObjectIdPass(const Tile &tile);
 
   struct Impl;
   std::shared_ptr<Impl> m_impl;
 };
 
-}  // namespace anari_cycles
+} // namespace anari_cycles

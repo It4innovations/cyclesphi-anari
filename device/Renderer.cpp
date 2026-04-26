@@ -6,10 +6,13 @@
 
 // cycles
 #include "scene/background.h"
-#include "scene/shader_nodes.h"
 #include "scene/image_oiio.h"
-
 #include <memory>
+#include "scene/integrator.h"
+#include "scene/light.h"
+#include "scene/pass.h"
+#include "scene/shader_graph.h"
+#include "scene/shader_nodes.h"
 
 namespace anari_cycles {
 
@@ -103,6 +106,26 @@ void Renderer::commitParameters()
       std::clamp(getParam<float>("volumeSamplingRate", 0.125f), 1e-3f, 10.f);
   if (m_checkerboard)
       m_spp = 1;
+
+#if 0
+  auto backgroundColor =
+      getParam<math::float4>("background", {0.f, 0.f, 0.f, 1.f});
+  m_needsUpdateStatus.background |= (m_backgroundColor != backgroundColor);
+  m_backgroundColor = backgroundColor;
+
+  auto ambientColor = getParam<math::float3>("ambientColor", {1.f, 1.f, 1.f});
+  m_needsUpdateStatus.ambientLight |= (m_ambientColor != ambientColor);
+  m_ambientColor = ambientColor;
+  auto ambientIntensity = 0.1f * getParam<float>("ambientRadiance", 1.f);
+  m_needsUpdateStatus.ambientLight |= (m_ambientIntensity != ambientIntensity);
+  m_ambientIntensity = ambientIntensity;
+
+  m_runAsync = getParam<bool>("runAsync", true);
+
+  auto denoise = getParam<bool>("denoise", false);
+  m_needsUpdateStatus.denoise |= (m_denoise != denoise);
+  m_denoise = denoise;
+#endif
 }
 
 int Renderer::spp() const
@@ -110,10 +133,64 @@ int Renderer::spp() const
     return m_spp;
 }
 
+#if 0
+  // setup background shader. Only keep background color for the background
+  // itself and kill illumination from other rays. Ambient lighting is handled
+  // through the default light shader.
+  auto graph = std::make_unique<ccl::ShaderGraph>();
+
+  auto *lightPath = graph->create_node<ccl::LightPathNode>();
+  auto *bg = graph->create_node<ccl::BackgroundNode>();
+
+  auto *mathR = graph->create_node<ccl::MathNode>();
+  mathR->set_math_type(ccl::NODE_MATH_MULTIPLY);
+  mathR->set_value1(m_backgroundColor.x);
+  graph->connect(lightPath->output("Is Camera Ray"), mathR->input("Value2"));
+
+  auto *mathG = graph->create_node<ccl::MathNode>();
+  mathG->set_math_type(ccl::NODE_MATH_MULTIPLY);
+  mathG->set_value1(m_backgroundColor.y);
+  graph->connect(lightPath->output("Is Camera Ray"), mathG->input("Value2"));
+
+  auto *mathB = graph->create_node<ccl::MathNode>();
+  mathB->set_math_type(ccl::NODE_MATH_MULTIPLY);
+  mathB->set_value1(m_backgroundColor.z);
+  graph->connect(lightPath->output("Is Camera Ray"), mathB->input("Value2"));
+
+  auto *combineColor = graph->create_node<ccl::CombineColorNode>();
+  graph->connect(mathR->output("Value"), combineColor->input("Red"));
+  graph->connect(mathG->output("Value"), combineColor->input("Green"));
+  graph->connect(mathB->output("Value"), combineColor->input("Blue"));
+  graph->connect(combineColor->output("Color"), bg->input("Color"));
+
+  graph->connect(bg->output("Background"), graph->output()->input("Surface"));
+
+  deviceState()->scene->default_background->name = "anari_default_background";
+  deviceState()->scene->default_background->set_graph(std::move(graph));
+  deviceState()->scene->default_background->tag_update(deviceState()->scene);
+#endif
+
 bool Renderer::checkerboarding() const
 {
     return m_checkerboard;
 }
+
+#if 0
+  auto graph = std::make_unique<ccl::ShaderGraph>();
+
+  auto emission = graph->create_node<ccl::EmissionNode>();
+  emission->set_color(
+      ccl::make_float3(m_ambientColor.x, m_ambientColor.y, m_ambientColor.z));
+  emission->set_strength(m_ambientIntensity * 40.0f);
+
+  graph->connect(
+      emission->output("Emission"), graph->output()->input("Surface"));
+
+  deviceState()->scene->default_light->name = "default_anari_light";
+  deviceState()->scene->default_light->set_graph(std::move(graph));
+
+  deviceState()->scene->default_light->tag_update(deviceState()->scene);
+#endif
 
 bool Renderer::denoise() const
 {
@@ -240,6 +317,38 @@ void Renderer::makeRendererCurrent() const
 
   state.scene->default_background->tag_update(state.scene);
   state.scene->background->tag_update(state.scene);
+
+#if 0
+#if defined(WITH_OPTIX) || defined(WITH_OPENIMAGEDENOISE)
+  if (m_needsUpdateStatus.denoise) {
+    m_needsUpdateStatus.denoise = false;
+    reportMessage(ANARI_SEVERITY_DEBUG,
+        "renderer -- set_use_denoise(%s)",
+        m_denoise ? "true" : "false");
+    deviceState()->scene->integrator->set_use_denoise(m_denoise);
+    // Cycles' finalize_passes() can only downgrade DENOISED→NOISY (when
+    // denoise is off), never upgrade NOISY→DENOISED. Once a named pass
+    // becomes NOISY it stays NOISY, causing the output driver to always
+    // read the noisy buffer. Fix by restoring DENOISED mode on the named
+    // combined pass before the scene update runs.
+    if (m_denoise) {
+      for (ccl::Pass *pass : deviceState()->scene->passes) {
+        if (pass->get_type() == ccl::PASS_COMBINED && !pass->get_name().empty()
+            && pass->get_mode() != ccl::PassMode::DENOISED) {
+          pass->set_mode(ccl::PassMode::DENOISED);
+        }
+      }
+    }
+  }
+#else
+  (void)m_denoise;
+  if (m_needsUpdateStatus.denoise) {
+    m_needsUpdateStatus.denoise = false;
+    reportMessage(ANARI_SEVERITY_WARNING,
+        "renderer -- denoise requested but no denoiser compiled in");
+  }
+#endif
+#endif
 }
 
 #if 0

@@ -261,9 +261,7 @@ int CyclesDevice::getProperty(ANARIObject object,
 {
   if (mask == ANARI_WAIT) {
     auto lock = scopeLockObject();
-#if 0 // TODO: this causes a crash in anariViewer...(???)
     deviceState()->waitOnCurrentFrame();
-#endif
   }
 
   return helium::BaseDevice::getProperty(object, name, type, mem, size, mask);
@@ -303,7 +301,7 @@ int CyclesDevice::deviceGetProperty(const char *name,
     uint32_t mask)
 {
   std::string_view prop = name;
-  if (prop == "feature" && type == ANARI_STRING_LIST) {
+  if (prop == "extension" && type == ANARI_STRING_LIST) {
     helium::writeToVoidP(mem, query_extensions());
     return 1;
   } else if (prop == "cycles" && type == ANARI_BOOL) {
@@ -326,7 +324,8 @@ void CyclesDevice::initDevice()
   auto *forceCPU = getenv("ANARI_CYCLES_FORCE_CPU");
 
   auto devices = ccl::Device::available_devices();
-  ccl::DeviceInfo selectedDevice;
+  ccl::DeviceInfo selectedDevice =
+      ccl::Device::available_devices(ccl::DEVICE_MASK_CPU).front();
   for (ccl::DeviceInfo &info : devices) {
     reportMessage(ANARI_SEVERITY_INFO,
         "Found Cycles Device: %-7s| %s",
@@ -373,6 +372,15 @@ void CyclesDevice::initDevice()
   // TODO:MJ
   //state.session_params.threads = 1;
 
+// #if defined(WITH_OPTIX) || defined(WITH_OPENIMAGEDENOISE)
+//   if (selectedDevice.type == ccl::DEVICE_OPTIX) {
+//     state.session_params.denoise_device = selectedDevice;
+//   } else {
+//     state.session_params.denoise_device =
+//         ccl::Device::available_devices(ccl::DEVICE_MASK_CPU).front();
+//   }
+// #endif
+
   reportMessage(ANARI_SEVERITY_INFO,
       "Using Cycles Device '%s'",
       ccl::Device::string_from_type(state.session_params.device.type).c_str());
@@ -386,6 +394,20 @@ void CyclesDevice::initDevice()
   // code signaling the frame is complete.
   state.scene->integrator->set_use_adaptive_sampling(false);
 
+#if defined(WITH_OPTIX) || defined(WITH_OPENIMAGEDENOISE)
+  if (selectedDevice.type == ccl::DEVICE_OPTIX) {
+    state.scene->integrator->set_denoiser_type(ccl::DENOISER_OPTIX);
+  } else {
+    state.scene->integrator->set_denoiser_type(ccl::DENOISER_OPENIMAGEDENOISE);
+  }
+  state.scene->integrator->set_use_denoise_pass_albedo(true);
+  state.scene->integrator->set_use_denoise_pass_normal(true);
+  state.scene->integrator->set_denoise_use_gpu(false);
+  state.scene->integrator->set_denoiser_prefilter(ccl::DENOISER_PREFILTER_FAST);
+  state.scene->integrator->set_denoiser_quality(ccl::DENOISER_QUALITY_BALANCED);
+  state.scene->integrator->set_use_denoise(false);
+#endif
+
   ccl::Pass *pass_combined = state.scene->create_node<ccl::Pass>();
   pass_combined->set_name(OIIO::ustring("combined"));
   pass_combined->set_type(ccl::PASS_COMBINED);
@@ -393,6 +415,18 @@ void CyclesDevice::initDevice()
   ccl::Pass *pass_depth = state.scene->create_node<ccl::Pass>();
   pass_depth->set_name(OIIO::ustring("depth"));
   pass_depth->set_type(ccl::PASS_DEPTH);
+
+  ccl::Pass *pass_normal = state.scene->create_node<ccl::Pass>();
+  pass_normal->set_name(OIIO::ustring("normal"));
+  pass_normal->set_type(ccl::PASS_NORMAL);
+
+  ccl::Pass *pass_albedo = state.scene->create_node<ccl::Pass>();
+  pass_albedo->set_name(OIIO::ustring("diffuse_color"));
+  pass_albedo->set_type(ccl::PASS_DIFFUSE_COLOR);
+
+  ccl::Pass *pass_object_id = state.scene->create_node<ccl::Pass>();
+  pass_object_id->set_name(OIIO::ustring("object_id"));
+  pass_object_id->set_type(ccl::PASS_OBJECT_ID);
 
   auto output_driver = std::make_unique<FrameOutputDriver>();
   state.output_driver = output_driver.get();

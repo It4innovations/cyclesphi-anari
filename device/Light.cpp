@@ -3,7 +3,6 @@
 
 #include "Light.h"
 #include <anari/anari_cpp/ext/linalg.h>
-//#include <zstd_errors.h>
 #include <cmath>
 #include <cstdio>
 #include "Sampler.h"
@@ -11,12 +10,12 @@
 // cycles
 #include "SamplerImageLoader.h"
 #include "kernel/svm/types.h"
+#include "scene/background.h"
 #include "scene/camera.h"
-#include "scene/colorspace.h"
+#include "util/colorspace.h"
 #include "scene/shader.h"
 #include "scene/shader_graph.h"
 #include "scene/shader_nodes.h"
-#include "scene/background.h"
 #include "util/math_base.h"
 #include "util/transform.h"
 #include "util/types_float3.h"
@@ -94,23 +93,55 @@ struct HDRI : public Light
 
  private:
   helium::IntrusivePtr<Array2D> m_radiance{};
-  math::float3 m_up{0.f, 1.f, 0.f};
-  math::float3 m_direction{0.f, 0.f, -1.f};
+  math::float3 m_up{0.f, 0.f, 1.f};
+  math::float3 m_direction{1.f, 0.f, 0.f};
 
   float m_scale{1.f};
   bool m_visible{true};
+};
+
+struct Point : public Light
+{
+  Point(CyclesGlobalState *s);
+
+  void commitParameters() override;
+  void finalize() override;
+  math::mat4 xfm() const override;
+
+ private:
+  math::float3 m_position{0.f, 0.f, 0.f};
+  float m_intensity{1.f};
+  float m_radius{0.f};
+};
+
+struct Spot : public Light
+{
+  Spot(CyclesGlobalState *s);
+
+  void commitParameters() override;
+  void finalize() override;
+  math::mat4 xfm() const override;
+
+ private:
+  math::float3 m_position{0.f, 0.f, 0.f};
+  math::float3 m_direction{0.f, 0.f, -1.f};
+  float m_intensity{1.f};
+  float m_openingAngle{M_PI_4};
+  float m_falloffAngle{0.1f};
+  float m_radius{0.f};
 };
 
 // Light definitions //////////////////////////////////////////////////////////
 
 Light::Light(CyclesGlobalState *s) : Object(ANARI_LIGHT, s)
 {
-  m_cyclesLight = s->scene->create_node<ccl::Light>();
+  // Light creation moved to subclasses since ccl::Light is abstract
 }
 
 Light::~Light()
 {
-  deviceState()->scene->delete_node(m_cyclesLight);
+  if (m_cyclesLight)
+    deviceState()->scene->delete_node(m_cyclesLight);
 }
 
 Light *Light::createInstance(std::string_view type, CyclesGlobalState *s)
@@ -119,6 +150,10 @@ Light *Light::createInstance(std::string_view type, CyclesGlobalState *s)
     return new Directional(s);
   else if (type == "hdri")
     return new HDRI(s);
+  else if (type == "point")
+    return new Point(s);
+  else if (type == "spot")
+    return new Spot(s);
   else
     return (Light *)new UnknownObject(ANARI_LIGHT, type, s);
 }
@@ -145,7 +180,10 @@ ccl::Shader *Light::cyclesShader() const
 
 // Directional definitions ////////////////////////////////////////////////////
 
-Directional::Directional(CyclesGlobalState *s) : Light(s) {}
+Directional::Directional(CyclesGlobalState *s) : Light(s)
+{
+  m_cyclesLight = s->scene->create_node<ccl::SunLight>();
+}
 
 void Directional::commitParameters()
 {
@@ -159,7 +197,7 @@ void Directional::commitParameters()
 
 void Directional::finalize()
 {
-  m_cyclesLight->set_light_type(LIGHT_DISTANT);
+  m_cyclesLight->set_light_type(LIGHT_SUN);
 
   if (m_prevDirection != m_direction) {
     reportMessage(ANARI_SEVERITY_PERFORMANCE_WARNING,
@@ -182,7 +220,10 @@ math::mat4 Directional::xfm() const
 
 // HDRI definitions ///////////////////////////////////////////////////////////
 
-HDRI::HDRI(CyclesGlobalState *s) : Light(s) {}
+HDRI::HDRI(CyclesGlobalState *s) : Light(s)
+{
+  m_cyclesLight = s->scene->create_node<ccl::BackgroundLight>();
+}
 
 HDRI::~HDRI() = default;
 
@@ -194,8 +235,8 @@ void HDRI::commitParameters()
   m_scale = getParam<float>("scale", 1.f);
   m_visible = getParam<bool>("visible", true);
 
-  m_up = getParam<math::float3>("up", {0.f, 1.f, 0.f});
-  m_direction = getParam<math::float3>("direction", {0.f, 0.f, 1.f});
+  m_up = getParam<math::float3>("up", {0.f, 0.f, 1.f});
+  m_direction = getParam<math::float3>("direction", {1.f, 0.f, 0.f});
 }
 
 // Transform vector from ANARI coordinate system to Cycles coordinate system
@@ -217,7 +258,6 @@ void HDRI::finalize()
   if (m_cyclesShader) {
     m_cyclesShader->dereference();
     deviceState()->scene->delete_node(m_cyclesShader);
-    assert(m_cyclesShader->reference_count() == 0);
     m_cyclesShader = nullptr;
   }
 
@@ -226,7 +266,8 @@ void HDRI::finalize()
     auto graph = std::make_unique<ccl::ShaderGraph>();
 
     // Build orthonormal basis from direction and up vectors
-    // We should ensure that up is not parallel to forward, let save that for later.
+    // We should ensure that up is not parallel to forward, let save that for
+    // later.
     auto forward = math::normalize(m_direction);
     auto up = math::normalize(m_up);
     auto right = math::normalize(math::cross(forward, up));
@@ -236,12 +277,10 @@ void HDRI::finalize()
     // Transform from standard basis to our custom orientation
     // math::mat3 rotationMat = {
     //     {forward.x, right.x, up.x},  // First column
-    //     {forward.y, right.y, up.y},  // Second column  
+    //     {forward.y, right.y, up.y},  // Second column
     //     {forward.z, right.z, up.z}   // Third column
     // };
-    math::mat3 rotationMat = {
-      forward, right, up
-    };
+    math::mat3 rotationMat = {forward, right, up};
 
     // Extract axis-angle representation for Cycles vector rotation node
     // math::float3 axis;
@@ -258,12 +297,13 @@ void HDRI::finalize()
     vectorRotate->set_rotate_type(ccl::NODE_VECTOR_ROTATE_TYPE_AXIS);
     vectorRotate->set_angle(angle);
     vectorRotate->set_axis(ccl::make_float3(axis.x, axis.y, axis.z));
-    graph->connect(tex_coords->output("Generated"), vectorRotate->input("Vector"));
-    
+    graph->connect(
+        tex_coords->output("Generated"), vectorRotate->input("Vector"));
+
     // Create environment texture node
     auto *env_tex = graph->create_node<ccl::EnvironmentTextureNode>();
     env_tex->set_projection(ccl::NODE_ENVIRONMENT_EQUIRECTANGULAR);
-    env_tex->set_colorspace(ccl::u_colorspace_raw);
+    env_tex->set_colorspace(ccl::u_colorspace_data);
     env_tex->set_tex_mapping_type(ccl::TextureMapping::VECTOR);
     env_tex->set_tex_mapping_x_mapping(ccl::TextureMapping::X);
     env_tex->set_tex_mapping_y_mapping(ccl::TextureMapping::Y);
@@ -278,20 +318,21 @@ void HDRI::finalize()
     params.alpha_type = IMAGE_ALPHA_AUTO;
     params.interpolation = INTERPOLATION_LINEAR;
 
-    env_tex->handle =
-      deviceState()->scene->image_manager->add_image(std::move(loader), params, false);
+    env_tex->handle = deviceState()->scene->image_manager->add_image(
+        std::move(loader), params, false);
 
     // Create output node
     auto *background = graph->create_node<ccl::BackgroundNode>();
-    
+    background->set_strength(m_scale);
+
     // Connect environment texture to background
     graph->connect(env_tex->output("Color"), background->input("Color"));
 
-    graph->connect(background->output("Background"), graph->output()->input("Surface"));
+    graph->connect(
+        background->output("Background"), graph->output()->input("Surface"));
 
     // Create shader and assign graph
     m_cyclesShader = deviceState()->scene->create_node<ccl::Shader>();
-    graph->dump_graph("/tmp/blender.graph.world.dot");
     m_cyclesShader->set_graph(std::move(graph));
     m_cyclesShader->tag_update(deviceState()->scene);
     m_cyclesShader->reference();
@@ -303,7 +344,79 @@ void HDRI::finalize()
 math::mat4 HDRI::xfm() const
 {
   return math::mat4(1.0f);
+}
 
+// Point definitions //////////////////////////////////////////////////////////
+
+Point::Point(CyclesGlobalState *s) : Light(s)
+{
+  m_cyclesLight = s->scene->create_node<ccl::PointLight>();
+}
+
+void Point::commitParameters()
+{
+  Light::commitParameters();
+  m_position = getParam<math::float3>("position", {0.f, 0.f, 0.f});
+  m_intensity = getParam<float>("intensity", 1.f);
+  m_radius = getParam<float>("radius", 0.f);
+}
+
+void Point::finalize()
+{
+  auto* pointLight = static_cast<ccl::PointLight*>(m_cyclesLight);
+  pointLight->set_light_type(ccl::LIGHT_POINT);
+  pointLight->set_radius(m_radius);
+  m_cyclesLight->set_strength(
+      m_intensity * ccl::make_float3(m_color[0], m_color[1], m_color[2]));
+  m_cyclesLight->tag_update(deviceState()->scene);
+  Light::finalize();
+}
+
+math::mat4 Point::xfm() const
+{
+  auto m = math::mat4(linalg::identity);
+  m[3] = {m_position.x, m_position.y, m_position.z, 1.f};
+  return m;
+}
+
+// Spot definitions ///////////////////////////////////////////////////////////
+
+Spot::Spot(CyclesGlobalState *s) : Light(s)
+{
+  m_cyclesLight = s->scene->create_node<ccl::SpotLight>();
+}
+
+void Spot::commitParameters()
+{
+  Light::commitParameters();
+  m_position = getParam<math::float3>("position", {0.f, 0.f, 0.f});
+  m_direction =
+      math::normalize(getParam<math::float3>("direction", {0.f, 0.f, -1.f}));
+  m_intensity = getParam<float>("intensity", 1.f);
+  m_openingAngle = getParam<float>("openingAngle", float(M_PI_4));
+  m_falloffAngle = getParam<float>("falloffAngle", 0.1f);
+  m_radius = getParam<float>("radius", 0.f);
+}
+
+void Spot::finalize()
+{
+  auto* spotLight = static_cast<ccl::SpotLight*>(m_cyclesLight);
+  spotLight->set_light_type(ccl::LIGHT_SPOT);
+  spotLight->set_radius(m_radius);
+  spotLight->set_angle(m_openingAngle * 2.f);
+  spotLight->set_smooth(
+      m_openingAngle > 0.f ? m_falloffAngle / m_openingAngle : 0.f);
+  m_cyclesLight->set_strength(
+      m_intensity * ccl::make_float3(m_color[0], m_color[1], m_color[2]));
+  m_cyclesLight->tag_update(deviceState()->scene);
+  Light::finalize();
+}
+
+math::mat4 Spot::xfm() const
+{
+  auto rot = math::inverse(rotationFromZNegativeToTarget(m_direction));
+  rot[3] = {m_position.x, m_position.y, m_position.z, 1.f};
+  return rot;
 }
 
 } // namespace anari_cycles

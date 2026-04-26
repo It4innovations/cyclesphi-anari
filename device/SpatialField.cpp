@@ -80,6 +80,7 @@ void StructuredRegularField::syncCyclesNode(ccl::Geometry* node) const
 
   volume->set_step_size(0.0f);
   volume->set_object_space(true);
+  
 #if 0
   volume->set_volume_mesh(true);
 #endif

@@ -118,17 +118,24 @@ void Triangle::setPrimitiveIndex(ccl::Mesh * mesh) const
 {
     const uint32_t numTriangles =
         m_index ? m_index->size() : m_vertexPosition->size() / 3;
-    mesh->reserve_mesh(numTriangles * 3, numTriangles);
+    mesh->resize_mesh(m_vertexPosition->size(), numTriangles);
+    auto& triangles = mesh->get_triangles();
+    auto& shader = mesh->get_shader();
+    auto& smooth = mesh->get_smooth();
     for (uint32_t i = 0; i < numTriangles; i++) {
         if (m_index) {
             auto* idxs = m_index->beginAs<anari_vec::uint3>();
-            mesh->add_triangle(
-                idxs[i][0], idxs[i][1], idxs[i][2], 0 /* local shaderID */, true);
+            triangles[i * 3 + 0] = idxs[i][0];
+            triangles[i * 3 + 1] = idxs[i][1];
+            triangles[i * 3 + 2] = idxs[i][2];
         }
         else {
-            mesh->add_triangle(
-                3 * i + 0, 3 * i + 1, 3 * i + 2, 0 /* local shaderID */, true);
+            triangles[i * 3 + 0] = 3 * i + 0;
+            triangles[i * 3 + 1] = 3 * i + 1;
+            triangles[i * 3 + 2] = 3 * i + 2;
         }
+        shader[i] = 0;
+        smooth[i] = true;
     }
 }
 

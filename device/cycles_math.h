@@ -29,6 +29,7 @@ using float2 = vec2;
 using float3 = vec3;
 using float4 = vec4;
 using uint3 = uvec3;
+using uint4 = uvec4;
 
 } // namespace anari_vec
 
@@ -69,8 +70,8 @@ inline void extend(range_t<T> &t, const T &v)
 template <typename T>
 inline void extend(range_t<T> &t1, const range_t<T> &t2)
 {
-  extend(t1, t2.lower);
-  extend(t1, t2.upper);
+  t1.lower = min(t2.lower, t1.lower);
+  t1.upper = max(t2.upper, t1.upper);
 }
 
 inline float radians(float degrees)

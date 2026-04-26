@@ -298,7 +298,18 @@
             "geometry.attribute3",
             "geometry.color"
           ],
-          "description": "debug visualization mode"
+          "description": "run anariRenderFrame() asynchronously"
+        },
+        {
+          "name": "denoise",
+          "types": [
+            "ANARI_BOOL"
+          ],
+          "tags": [],
+          "default": [
+            false
+          ],
+          "description": "denoise the rendered image (requires OptiX or OIDN at build time)"
         }
       ]
     }

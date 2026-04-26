@@ -127,6 +127,8 @@ PRIVATE
 
   ${CMAKE_SOURCE_DIR}/cyclesphi/src/app/cycles_xml_bin.cpp
   ${CMAKE_SOURCE_DIR}/cyclesphi/src/app/cycles_xml_bin.h
+  ${CMAKE_SOURCE_DIR}/cyclesphi/src/app/cycles_xml_nodes.cpp
+  ${CMAKE_SOURCE_DIR}/cyclesphi/src/app/cycles_xml_nodes.h
 )
 
 get_target_property(CYCLES_INCLUDE_DIRECTORIES cycles_bvh INCLUDE_DIRECTORIES)
@@ -138,6 +140,13 @@ PRIVATE
   ${CMAKE_SOURCE_DIR}/cyclesphi/src
   $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
 )
+
+if(ANARI_CYCLES_USE_OPTIX)
+  target_compile_definitions(${PROJECT_NAME} PRIVATE WITH_OPTIX)
+endif()
+if(ANARI_CYCLES_USE_OIDN)
+  target_compile_definitions(${PROJECT_NAME} PRIVATE WITH_OPENIMAGEDENOISE)
+endif()
 
 ###################LIB######################
 set(LIB

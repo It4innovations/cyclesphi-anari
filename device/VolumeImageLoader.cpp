@@ -63,11 +63,9 @@ void VolumeImageLoader::get_transform(Transform &world_to_index) {
     world_to_index[2].w = p_field->m_origin[2];//-p_field->m_origin[2] * inv_sz + half_voxel * inv_sz;
 }
 
-bool VolumeImageLoader::load_metadata(
-    const ImageDeviceFeatures &features, ImageMetaData &metadata)
-{
-  metadata.byte_size = p_field->m_data->totalSize()
-      * anari::sizeOf(p_field->m_data->elementType());  
+bool VolumeImageLoader::load_metadata(ImageMetaData &metadata)
+{  
+
 
   // TODO: MJ
   //metadata.transform_3d = //transform_identity();
@@ -83,11 +81,17 @@ bool VolumeImageLoader::load_metadata(
 
   metadata.use_transform_3d = false;
 
-  metadata.width = metadata.byte_size;
+  auto byte_size = p_field->m_data->totalSize()
+      * anari::sizeOf(p_field->m_data->elementType());
+  metadata.width = byte_size;
   //p_field->m_dims[0];
   metadata.height = 1;
   //p_field->m_dims[1];
   //metadata.depth = p_field->m_dims[2];
+#if 0
+  metadata.width = p_field->m_dims[0];
+  metadata.height = p_field->m_dims[1];
+#endif
 
   switch (p_field->m_data->elementType()) {
   case (ANARI_FLOAT32):
@@ -107,8 +111,7 @@ bool VolumeImageLoader::load_metadata(
   return true;
 }
 
-bool VolumeImageLoader::load_pixels(
-    const ImageMetaData &, void *pixels, const size_t, const bool)
+bool VolumeImageLoader::load_pixels(const ImageMetaData &, void *pixels)
 {
   auto size = p_field->m_data->totalSize()
       * anari::sizeOf(p_field->m_data->elementType());

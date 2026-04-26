@@ -68,6 +68,22 @@ void MatteMaterial::finalize()
         }
     }
 
+#if 0    
+  makeGraph();
+
+  connectAttributes(
+      m_bsdf, m_colorAttr, "Base Color", m_color, m_colorSampler.get());
+
+  const bool isOpaque = m_mode == helium::AlphaMode::OPAQUE;
+  connectAttributes(m_bsdf,
+      m_opacityAttr,
+      "Alpha",
+      isOpaque ? 1.f : m_opacity,
+      m_opacitySampler && !isOpaque ? m_opacitySampler.get() : nullptr);
+
+  m_shader->tag_update(deviceState()->scene);
+#endif
+
   Material::finalize();
 }
 
@@ -97,7 +113,7 @@ struct PhysicallyBasedMaterial : public Material
 
   //ccl::PrincipledBsdfNode *m_bsdf{nullptr};
   std::string m_colorAttr;
-  float3 m_color{make_float3(0.8f, 0.8f, 0.8f)};
+  float3 m_color{make_float3(1.f, 1.f, 1.f)};
   helium::ChangeObserverPtr<Sampler> m_colorSampler;
 
   std::string m_opacityAttr;
@@ -119,7 +135,7 @@ struct PhysicallyBasedMaterial : public Material
   std::string m_clearcoatRoughnessAttr;
   float m_clearcoatRoughness{0.f};
   std::string m_emissiveAttr;
-  float3 m_emissive{0.f};
+  float3 m_emissive{make_float3(0.f)};
   std::string m_transmissionAttr;
   float m_transmission{0.f};
   float m_ior{1.5f};
@@ -143,7 +159,7 @@ PhysicallyBasedMaterial::PhysicallyBasedMaterial(CyclesGlobalState *s)
 void PhysicallyBasedMaterial::commitParameters()
 {
   m_colorAttr = getParamString("baseColor", "");
-  m_color = getParam<float3>("baseColor", make_float3(0.8f, 0.8f, 0.8f));
+  m_color = getParam<float3>("baseColor", make_float3(1.f, 1.f, 1.f));
   m_colorSampler = getParamObject<Sampler>("baseColor");
 
   m_opacityAttr = getParamString("opacity", "");
@@ -207,6 +223,47 @@ void PhysicallyBasedMaterial::finalize()
             bsdf->set_ior(m_ior);
         }
     }
+#if 0  
+  connectAttributes(
+      m_bsdf, m_colorAttr, "Base Color", m_color, m_colorSampler.get());
+
+  const bool isOpaque = m_mode == helium::AlphaMode::OPAQUE;
+  connectAttributes(m_bsdf,
+      m_opacityAttr,
+      "Alpha",
+      isOpaque ? 1.f : m_opacity,
+      m_opacitySampler && !isOpaque ? m_opacitySampler.get() : nullptr);
+
+  connectAttributes(m_bsdf,
+      m_roughnessAttr,
+      "Roughness",
+      m_roughness,
+      m_roughnessSampler.get());
+
+  connectAttributes(
+      m_bsdf, m_metallicAttr, "Metallic", m_metallic, m_metallicSampler.get());
+
+  connectAttributes(m_bsdf, m_clearcoatAttr, "Coat Weight", m_clearcoat);
+  connectAttributes(
+      m_bsdf, m_clearcoatRoughnessAttr, "Coat Roughness", m_clearcoatRoughness);
+  connectAttributes(m_bsdf, m_emissiveAttr, "Emission Color", m_emissive);
+  connectAttributes(
+      m_bsdf, m_transmissionAttr, "Transmission Weight", m_transmission);
+  m_bsdf->input("IOR")->set(m_ior);
+
+  if (m_normalSampler) {
+    auto samplerOutputs = getSamplerOutputs(m_normalSampler.get());
+    if (samplerOutputs.colorOutput) {
+      auto *normalMap = m_graph->create_node<ccl::NormalMapNode>();
+      normalMap->set_space(ccl::NODE_NORMAL_MAP_TANGENT);
+      normalMap->set_attribute(ccl::ustring(""));
+      m_graph->connect(samplerOutputs.colorOutput, normalMap->input("Color"));
+      m_graph->connect(normalMap->output("Normal"), m_bsdf->input("Normal"));
+    }
+  }
+
+  m_shader->tag_update(deviceState()->scene);
+#endif
 
   Material::finalize();
 }
@@ -374,6 +431,109 @@ void Material::makeGraph()
 //      shaderInput->set(v);
 //  }
 //}
+
+#if 0  
+void Material::connectAttributes(ccl::ShaderNode *bsdf,
+    const std::string &attributeSource,
+    const char *input,
+    float v,
+    Sampler *sampler)
+{
+  connectAttributesImpl(
+      bsdf, attributeSource, sampler, input, make_float3(v), true);
+}
+
+void Material::connectAttributes(ccl::ShaderNode *bsdf,
+    const std::string &attributeSource,
+    const char *input,
+    const float3 &v,
+    Sampler *sampler)
+{
+  connectAttributesImpl(bsdf, attributeSource, sampler, input, v, false);
+}
+
+Sampler::SamplerOutputs Material::getSamplerOutputs(Sampler *sampler)
+{
+  if (!sampler) {
+    return Sampler::SamplerOutputs{};
+  }
+
+  auto it = m_samplerOutputs.find(sampler);
+  if (it != m_samplerOutputs.end() && it->second.isValid) {
+    return it->second.outputs;
+  }
+
+  // Create new outputs using the sampler's node graph
+  auto outputs = sampler->createNodeGraph(m_graph, m_attributeNodes.attr0);
+
+  // Cache the outputs
+  m_samplerOutputs[sampler] = {outputs, true};
+
+  return outputs;
+}
+
+void Material::connectAttributesImpl(ccl::ShaderNode *bsdf,
+    const std::string &attributeSource,
+    Sampler *sampler,
+    const char *input,
+    const float3 &v,
+    bool singleComponent)
+{
+  auto *shaderInput = bsdf->input(input);
+  if (shaderInput->link)
+    m_graph->disconnect(shaderInput);
+
+  if (sampler) {
+    // Get or create sampler outputs
+    auto samplerOutputs = getSamplerOutputs(sampler);
+
+    // Choose the appropriate output based on what we need
+    ccl::ShaderOutput *outputToConnect = nullptr;
+    if (singleComponent && samplerOutputs.scalarOutput) {
+      outputToConnect = samplerOutputs.scalarOutput;
+    } else if (!singleComponent && samplerOutputs.colorOutput) {
+      outputToConnect = samplerOutputs.colorOutput;
+    } else if (samplerOutputs.colorOutput) {
+      // Fallback to color output if scalar not available
+      outputToConnect = samplerOutputs.colorOutput;
+    }
+
+    if (outputToConnect) {
+      m_graph->connect(outputToConnect, shaderInput);
+      return;
+    }
+  }
+
+  // Handle attribute connections
+  if (attributeSource == "color") {
+    m_graph->connect(
+        singleComponent ? m_attributeNodes.attrC_sc : m_attributeNodes.attrC,
+        shaderInput);
+  } else if (attributeSource == "attribute0") {
+    m_graph->connect(
+        singleComponent ? m_attributeNodes.attr0_sc : m_attributeNodes.attr0,
+        shaderInput);
+  } else if (attributeSource == "attribute1") {
+    m_graph->connect(
+        singleComponent ? m_attributeNodes.attr1_sc : m_attributeNodes.attr1,
+        shaderInput);
+  } else if (attributeSource == "attribute2") {
+    m_graph->connect(
+        singleComponent ? m_attributeNodes.attr2_sc : m_attributeNodes.attr2,
+        shaderInput);
+  } else if (attributeSource == "attribute3") {
+    m_graph->connect(
+        singleComponent ? m_attributeNodes.attr3_sc : m_attributeNodes.attr3,
+        shaderInput);
+  } else {
+    // Use constant value
+    if (singleComponent)
+      shaderInput->set(v.x);
+    else
+      shaderInput->set(v);
+  }
+}
+#endif
 
 } // namespace anari_cycles
 
