@@ -16,7 +16,7 @@
 #include <thread>
 
 namespace ccl {
-struct BackgroundNode;
+class BackgroundNode;
 } // namespace ccl
 
 namespace anari_cycles {
@@ -46,6 +46,18 @@ struct CyclesGlobalState : public helium::BaseGlobalDeviceState
   ccl::ColorNode *backgroundColor{nullptr};
   ccl::ColorNode *ambientColor{nullptr};
   ccl::ValueNode *ambientIntensity{nullptr};
+
+  // cyclesphi XML scene support (see XmlScene.h) //
+
+  // Directory with the XML files, empty when XML support is disabled.
+  std::string xmlPath;
+  // Use XML shader templates (<subtype>.xml) for materials and volumes.
+  bool xmlTemplates{false};
+  // Named background shader nodes of the XML default scene ("bgColor",
+  // "ambientIntensity"). When present the renderer drives these nodes
+  // instead of building its own default background shader.
+  ccl::BackgroundNode *xmlBgColor{nullptr};
+  ccl::BackgroundNode *xmlAmbientIntensity{nullptr};
 
   // Scene mutation guard //
 

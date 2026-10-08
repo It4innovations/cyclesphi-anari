@@ -17,8 +17,11 @@
 #include "frame/Frame.h"
 
 #include "frame/FrameOutputDriver.h"
+#include "XmlScene.h"
 
 // std
+#include <algorithm>
+#include <cctype>
 #include <cstring>
 
 namespace anari_cycles {
@@ -411,6 +414,17 @@ ccl::DeviceInfo CyclesDevice::selectComputeDevice()
   m_requestedComputeDevice = requested;
   m_requestedComputeDeviceIndex = requestedIndex;
 
+  // cyclesphi: CYCLES_ANARI_USE_GPU=<Cycles device type> (e.g. CUDA, OPTIX)
+  // selects the backend when the parameter is left at 'auto'.
+  if (const char *useGPU = getenv("CYCLES_ANARI_USE_GPU");
+      useGPU && useGPU[0] != '\0' && requested == "auto") {
+    requested = useGPU;
+    std::transform(requested.begin(),
+        requested.end(),
+        requested.begin(),
+        [](unsigned char c) { return char(std::tolower(c)); });
+  }
+
   // Env override for containers/CI -- takes precedence over the parameter.
   if (getenv("ANARI_CYCLES_FORCE_CPU")) {
     if (requested != "auto" && requested != "cpu") {
@@ -622,6 +636,19 @@ void CyclesDevice::initDevice()
   // all single-write passes, matching the first-hit semantics of the
   // depth/objectId channels.
   state.scene->film->set_pass_alpha_threshold(0.f);
+
+  // cyclesphi: optional XML default scene (film/integrator/background
+  // settings), see XmlScene.h.
+  xmlConfigure(state,
+      getParamString("cyclesphi.xmlPath", ""),
+      getParam<bool>("cyclesphi.xmlScene", false),
+      getParam<bool>("cyclesphi.xmlTemplates", false));
+  xmlLoadDefaultScene(state);
+  if (state.xmlBgColor || state.xmlAmbientIntensity) {
+    reportMessage(ANARI_SEVERITY_INFO,
+        "loaded XML default scene from '%s'",
+        state.xmlPath.c_str());
+  }
 
   auto output_driver = std::make_unique<FrameOutputDriver>();
   state.output_driver = output_driver.get();

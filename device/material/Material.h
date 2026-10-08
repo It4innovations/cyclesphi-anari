@@ -34,6 +34,15 @@ struct Material : public Object
 
  protected:
   virtual void makeGraph();
+  // cyclesphi: name of the XML shader template replacing the built-in graph
+  // when XML templates are enabled (see XmlScene.h), nullptr for none.
+  virtual const char *xmlTemplateName() const
+  {
+    return nullptr;
+  }
+  // Apply the constant material parameters to a Principled BSDF node of the
+  // XML template.
+  virtual void applyXmlTemplateParameters(ccl::PrincipledBsdfNode *) {}
   void connectAttributes(ccl::ShaderNode *bsdf,
       const std::string &mode,
       const char *input,

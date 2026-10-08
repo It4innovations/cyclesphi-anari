@@ -6,6 +6,7 @@
 // subtypes
 #include "Image1D.h"
 #include "Image2D.h"
+#include "Image3D.h"
 #include "PrimitiveSampler.h"
 #include "TransformSampler.h"
 #include "UnknownSampler.h"
@@ -27,6 +28,18 @@ Sampler::ColorAlpha Sampler::makeAttributeInput(
     auto *combine = graph->create_node<ccl::CombineXYZNode>();
     graph->connect(node->output("Fac"), combine->input("X"));
     return {combine->output("Vector"), nullptr};
+  }
+
+  // Geometric surface inputs (vec3, alpha 1 per the attribute fill rules).
+  if (attribute == "worldPosition" || attribute == "worldNormal") {
+    auto *node = graph->create_node<ccl::GeometryNode>();
+    return {node->output(attribute == "worldPosition" ? "Position" : "Normal"),
+        nullptr};
+  }
+  if (attribute == "objectPosition" || attribute == "objectNormal") {
+    auto *node = graph->create_node<ccl::TextureCoordinateNode>();
+    return {node->output(attribute == "objectPosition" ? "Object" : "Normal"),
+        nullptr};
   }
 
   if (const char *name = cyclesAttributeName(attribute)) {
@@ -201,14 +214,13 @@ Sampler *Sampler::createInstance(std::string_view subtype, CyclesGlobalState *s)
     return new Image1D(s);
   else if (subtype == "image2D")
     return new Image2D(s);
+  else if (subtype == "image3D")
+    return new Image3D(s);
   else if (subtype == "transform")
     return new TransformSampler(s);
   else if (subtype == "primitive")
     return new PrimitiveSampler(s);
 
-  // Cycles no longer supports dense 3D image textures, so image3D is
-  // intentionally represented by the same safe invalid object as any other
-  // unknown subtype (with a clearer warning, see UnknownSampler).
   return new UnknownSampler(subtype, s);
 }
 

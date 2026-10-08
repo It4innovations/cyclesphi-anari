@@ -1,0 +1,44 @@
+{
+ "info": {
+  "name": "CYCLES_LIGHT_SOFT_FALLOFF",
+  "type": "extension",
+  "comment": "Cycles vendor extension: soft falloff of point and spot lights with a radius. With 'softFalloff' enabled the light is evaluated like Cycles point lights with soft falloff (Blender's default) instead of as a sphere light, which only differs close to the light.",
+  "dependencies": []
+ },
+ "objects": [
+  {
+   "type": "ANARI_LIGHT",
+   "name": "point",
+   "parameters": [
+    {
+     "name": "softFalloff",
+     "types": [
+      "ANARI_BOOL"
+     ],
+     "tags": [],
+     "default": [
+      false
+     ],
+     "description": "use the soft falloff of Cycles point lights instead of a sphere light"
+    }
+   ]
+  },
+  {
+   "type": "ANARI_LIGHT",
+   "name": "spot",
+   "parameters": [
+    {
+     "name": "softFalloff",
+     "types": [
+      "ANARI_BOOL"
+     ],
+     "tags": [],
+     "default": [
+      false
+     ],
+     "description": "use the soft falloff of Cycles spot lights instead of a sphere light"
+    }
+   ]
+  }
+ ]
+}

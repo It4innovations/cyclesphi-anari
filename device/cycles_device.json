@@ -7,9 +7,9 @@
       "copies in device/json/ (see CMakeLists.txt JSON_ROOT_LOCATION).",
       "They advertise the official KHR extension names but omit registry",
       "parameters this device does not implement yet.",
-      "khr_sampler_image3d is intentionally absent: Cycles has no dense 3D",
-      "image textures (creating an 'image3D' sampler warns and yields an",
-      "invalid object).",
+      "khr_sampler_image3d is implemented as a padded 2D slice atlas sampled",
+      "by shader-graph math (it also accepts 'clampToBorder' + 'borderColor').",
+      "khr_spatial_field_unstructured is resampled onto a regular grid.",
       "khr_frame_channel_object_id must stay listed after",
       "khr_volume_transfer_function1d: its anonymous ANARI_VOLUME 'id' entry",
       "only merges into subtypes that already exist."
@@ -41,6 +41,7 @@
       "cycles_khr_instance_motion_scale_rotation_translation",
       "cycles_khr_sampler_image1d",
       "cycles_khr_sampler_image2d",
+      "khr_sampler_image3d",
       "khr_sampler_primitive",
       "khr_sampler_transform",
       "khr_device_synchronization",
@@ -57,6 +58,7 @@
       "cycles_khr_light_ring",
       "khr_light_spot",
       "cycles_ext_light_sky",
+      "cycles_ext_light_soft_falloff",
       "cycles_khr_area_lights",
       "cycles_khr_renderer_ambient_light",
       "khr_material_matte",
@@ -81,6 +83,7 @@
       "khr_spatial_field_structured_regular",
       "khr_spatial_field_structured_regular_cubic",
       "khr_spatial_field_nanovdb",
+      "khr_spatial_field_unstructured",
       "khr_volume_transfer_function1d",
       "cycles_ext_volume_principled",
       "khr_frame_channel_object_id"
@@ -198,6 +201,122 @@
           "description": "run anariRenderFrame() asynchronously"
         }
       ]
+    },
+    {
+      "type": "ANARI_RENDERER",
+      "name": "ao",
+      "parameters": [
+        {
+          "name": "pixelSamples",
+          "types": [
+            "ANARI_INT32"
+          ],
+          "tags": [],
+          "default": [
+            1
+          ],
+          "description": "samples accumulated per anariRenderFrame() call"
+        },
+        {
+          "name": "runAsync",
+          "types": [
+            "ANARI_BOOL"
+          ],
+          "tags": [],
+          "default": [
+            true
+          ],
+          "description": "run anariRenderFrame() asynchronously"
+        }
+      ],
+      "description": "alias of the 'default' renderer (VisRTX compatible subtype name)"
+    },
+    {
+      "type": "ANARI_RENDERER",
+      "name": "dpt",
+      "parameters": [
+        {
+          "name": "pixelSamples",
+          "types": [
+            "ANARI_INT32"
+          ],
+          "tags": [],
+          "default": [
+            1
+          ],
+          "description": "samples accumulated per anariRenderFrame() call"
+        },
+        {
+          "name": "runAsync",
+          "types": [
+            "ANARI_BOOL"
+          ],
+          "tags": [],
+          "default": [
+            true
+          ],
+          "description": "run anariRenderFrame() asynchronously"
+        }
+      ],
+      "description": "alias of the 'default' renderer (VisRTX compatible subtype name)"
+    },
+    {
+      "type": "ANARI_RENDERER",
+      "name": "raycast",
+      "parameters": [
+        {
+          "name": "pixelSamples",
+          "types": [
+            "ANARI_INT32"
+          ],
+          "tags": [],
+          "default": [
+            1
+          ],
+          "description": "samples accumulated per anariRenderFrame() call"
+        },
+        {
+          "name": "runAsync",
+          "types": [
+            "ANARI_BOOL"
+          ],
+          "tags": [],
+          "default": [
+            true
+          ],
+          "description": "run anariRenderFrame() asynchronously"
+        }
+      ],
+      "description": "alias of the 'default' renderer (VisRTX compatible subtype name)"
+    },
+    {
+      "type": "ANARI_RENDERER",
+      "name": "debug",
+      "parameters": [
+        {
+          "name": "pixelSamples",
+          "types": [
+            "ANARI_INT32"
+          ],
+          "tags": [],
+          "default": [
+            1
+          ],
+          "description": "samples accumulated per anariRenderFrame() call"
+        },
+        {
+          "name": "runAsync",
+          "types": [
+            "ANARI_BOOL"
+          ],
+          "tags": [],
+          "default": [
+            true
+          ],
+          "description": "run anariRenderFrame() asynchronously"
+        }
+      ],
+      "description": "alias of the 'default' renderer (VisRTX compatible subtype name)"
     }
   ]
 }

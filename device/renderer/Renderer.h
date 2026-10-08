@@ -136,6 +136,7 @@ struct Renderer : public Object
   } m_sampling;
 
   void rebuildDefaultBackgroundShader();
+  void updateXmlBackgroundShader();
   void rebakeBackgroundImage();
   void syncNoisyColorPass();
   void pushSamplingState();

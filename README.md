@@ -43,13 +43,19 @@ name but omit registry parameters not yet implemented — see
 - `KHR_MATERIAL_MATTE`, `KHR_MATERIAL_PHYSICALLY_BASED`
 
 **Sampler**
-- `KHR_SAMPLER_IMAGE1D`, `KHR_SAMPLER_IMAGE2D`
+- `KHR_SAMPLER_IMAGE1D`, `KHR_SAMPLER_IMAGE2D`, `KHR_SAMPLER_IMAGE3D` (2D atlas
+  of padded Z slices sampled by shader-graph math; also accepts
+  `clampToBorder` + `borderColor`)
 - `KHR_SAMPLER_PRIMITIVE`, `KHR_SAMPLER_TRANSFORM`
 
 **Volume / spatial field**
 - `KHR_VOLUME_TRANSFER_FUNCTION1D`
 - `KHR_SPATIAL_FIELD_STRUCTURED_REGULAR`, `KHR_SPATIAL_FIELD_STRUCTURED_REGULAR_CUBIC`
 - `KHR_SPATIAL_FIELD_NANOVDB`
+- `KHR_SPATIAL_FIELD_UNSTRUCTURED` (tetra/hexa/wedge/pyramid cells, cell- or
+  vertex-centered data, resampled on the CPU onto a regular grid plus a
+  coverage grid; `cyclesphi.resolution` sets the voxel count along the
+  longest axis, default derived from the cell count)
 
 **Renderer**
 - `KHR_RENDERER_AMBIENT_LIGHT`, `KHR_RENDERER_BACKGROUND_COLOR`, `KHR_RENDERER_BACKGROUND_IMAGE`
@@ -61,9 +67,8 @@ name but omit registry parameters not yet implemented — see
 - `KHR_FRAME_CHANNEL_PRIMITIVE_ID`, `KHR_FRAME_CHANNEL_INSTANCE_ID`, `KHR_FRAME_CHANNEL_OBJECT_ID`
 - `KHR_DEVICE_SYNCHRONIZATION`, `KHR_ARRAY1D_REGION`
 
-Notably absent: `KHR_SAMPLER_IMAGE3D` (Cycles has no dense 3D image textures;
-creating an `image3D` sampler warns and yields an invalid object) and
-`KHR_SPATIAL_FIELD_UNSTRUCTURED` (no Cycles analogue).
+Sampler `inAttribute` additionally accepts `worldPosition`, `worldNormal`,
+`objectPosition` and `objectNormal`.
 
 ## Vendor extensions (`CYCLES_*`)
 

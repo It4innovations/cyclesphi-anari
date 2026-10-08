@@ -312,6 +312,20 @@ void PhysicallyBasedMaterial::finalize()
   Material::finalize();
 }
 
+void PhysicallyBasedMaterial::applyXmlTemplateParameters(
+    ccl::PrincipledBsdfNode *bsdf)
+{
+  bsdf->set_base_color(m_color);
+  bsdf->set_alpha(m_mode == helium::AlphaMode::OPAQUE ? 1.f : m_opacity);
+  bsdf->set_roughness(m_roughness);
+  bsdf->set_metallic(m_metallic);
+  bsdf->set_coat_weight(m_clearcoat);
+  bsdf->set_coat_roughness(m_clearcoatRoughness);
+  bsdf->set_emission_color(m_emissive);
+  bsdf->set_transmission_weight(m_transmission);
+  bsdf->set_ior(m_ior);
+}
+
 void PhysicallyBasedMaterial::makeGraph()
 {
   Material::makeGraph();

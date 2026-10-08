@@ -44,8 +44,9 @@ inline math::mat4 rotationFromZNegativeToTarget(const math::float3 &targetDir)
       {axis.z, 0.0f, -axis.x},
       {-axis.y, axis.x, 0.0f}};
 
+  // 'axis' is normalized, so the K^2 term is scaled by (1 - cos) only.
   auto result = math::mat3{linalg::identity} + K * s
-      + mul(K, K) * ((1.0f - cosTheta) / (s * s));
+      + mul(K, K) * (1.0f - cosTheta);
 
   return math::mat4{{result[0].x, result[0].y, result[0].z, 0.0f},
       {result[1].x, result[1].y, result[1].z, 0.0f},

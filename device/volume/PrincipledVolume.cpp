@@ -89,16 +89,23 @@ void PrincipledVolume::rebuildCyclesShaderGraph()
     volumeNode->set_blackbody_intensity(m_blackbodyIntensity);
     volumeNode->set_blackbody_tint(m_blackbodyTint);
 
-    // density = fieldValue * densityScale
+    // density = fieldValue * densityScale (* coverage of the field domain)
+    ccl::ShaderOutput *density = fieldValue;
+    if (auto *coverage = m_field->createCyclesCoverageNodes(graph.get())) {
+      auto *masked = graph->create_node<ccl::MathNode>();
+      masked->set_math_type(ccl::NODE_MATH_MULTIPLY);
+      graph->connect(density, masked->input("Value1"));
+      graph->connect(coverage, masked->input("Value2"));
+      density = masked->output("Value");
+    }
     if (m_densityScale != 1.f) {
       auto *scale = graph->create_node<ccl::MathNode>();
       scale->set_math_type(ccl::NODE_MATH_MULTIPLY);
       scale->set_value2(m_densityScale);
-      graph->connect(fieldValue, scale->input("Value1"));
-      graph->connect(scale->output("Value"), volumeNode->input("Density"));
-    } else {
-      graph->connect(fieldValue, volumeNode->input("Density"));
+      graph->connect(density, scale->input("Value1"));
+      density = scale->output("Value");
     }
+    graph->connect(density, volumeNode->input("Density"));
 
     // Blackbody temperature (K): either a second spatial field (fire) or a
     // constant. An invalid field falls back to the constant with a warning.

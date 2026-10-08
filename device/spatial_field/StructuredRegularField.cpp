@@ -8,8 +8,12 @@
 #include "scene/geometry.h"
 #include "scene/scene.h"
 #include "scene/shader_nodes.h"
+#ifdef WITH_CYCLESPHI
+#include "scene/image_vdb.h" // RAWImageLoader
+#endif
 // std
 #include <algorithm>
+#include <cstdlib>
 #include <cmath>
 #include <cstring>
 
@@ -34,6 +38,10 @@ void StructuredRegularField::commitParameters()
     m_filter = Filter::CUBIC;
   else
     m_filter = Filter::LINEAR;
+
+  m_useRaw3D = getParam<bool>("cyclesphi.raw3d", true);
+  if (const char *env = getenv("CYCLES_ANARI_VOLUME_RAW3D"))
+    m_useRaw3D = atoi(env) != 0;
 }
 
 void StructuredRegularField::finalize()
@@ -52,6 +60,11 @@ void StructuredRegularField::finalize()
   if (!isValid()) {
     reportMessage(ANARI_SEVERITY_WARNING,
         "'data' on 'structuredRegular' field has a zero-sized dimension");
+    SpatialField::finalize();
+    return;
+  }
+
+  if (m_useRaw3D && finalizeRaw3DGrid()) {
     SpatialField::finalize();
     return;
   }
@@ -75,6 +88,53 @@ void StructuredRegularField::finalize()
                                   : INTERPOLATION_LINEAR);
 
   SpatialField::finalize();
+}
+
+bool StructuredRegularField::finalizeRaw3DGrid()
+{
+#ifdef WITH_CYCLESPHI
+  if (!voxelToFloatSupported(m_data->elementType())) {
+    reportMessage(ANARI_SEVERITY_WARNING,
+        "unsupported voxel type on 'structuredRegular' field for the raw 3D "
+        "texture path; falling back to the 2D atlas");
+    return false;
+  }
+
+  const size_t n = size_t(m_dims[0]) * m_dims[1] * m_dims[2];
+  ccl::vector<char> voxels(n * sizeof(float));
+  convertVoxelsToFloat(
+      m_data->elementType(), m_data->data(), 0, (float *)voxels.data(), n);
+
+  // The kernel maps the object space position P to voxel indices as
+  // (P - bbox_min - trans) / scale, with x fastest in memory.
+  const ccl::int3 dims = ccl::make_int3(m_dims[0], m_dims[1], m_dims[2]);
+  const ccl::float3 scale =
+      ccl::make_float3(m_spacing[0], m_spacing[1], m_spacing[2]);
+  const ccl::float3 trans =
+      ccl::make_float3(m_origin[0], m_origin[1], m_origin[2]);
+  const ccl::int3 bboxMin = ccl::make_int3(0, 0, 0);
+  const ccl::int3 bboxMax =
+      ccl::make_int3(m_dims[0] - 1, m_dims[1] - 1, m_dims[2] - 1);
+
+  const InterpolationType interpolation = m_filter == Filter::NEAREST
+      ? INTERPOLATION_CLOSEST
+      : (m_filter == Filter::CUBIC ? INTERPOLATION_CUBIC
+                                   : INTERPOLATION_LINEAR);
+
+  m_voxelImage = addFieldImage(*deviceState(),
+      std::make_unique<ccl::RAWImageLoader>(voxels,
+          dims,
+          scale,
+          trans,
+          bboxMin,
+          bboxMax,
+          ccl::RAWImageLoader::eRawFloat,
+          1),
+      interpolation);
+  return !m_voxelImage.empty();
+#else
+  return false;
+#endif
 }
 
 bool StructuredRegularField::finalizeCubicGrid()

@@ -31,6 +31,7 @@ void Point::commitParameters()
   Light::commitParameters();
   m_position = getParam<math::float3>("position", {0.f, 0.f, 0.f});
   m_radius = std::max(getParam<float>("radius", 0.f), 0.f);
+  m_softFalloff = getParam<bool>("softFalloff", false);
   // Photometric precedence: 'radiance' (KHR_AREA_LIGHTS, sphere surface
   // radiance) over 'intensity' (W/sr) over 'power' (W).
   float value = 1.f;
@@ -52,6 +53,7 @@ void Point::finalize()
 {
   auto *light = static_cast<ccl::PointLight *>(m_cyclesLight);
   light->set_radius(m_radius);
+  light->set_is_sphere(!m_softFalloff);
   switch (m_quantity) {
   case Quantity::RADIANCE:
     if (m_radius <= 0.f) {

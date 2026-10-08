@@ -48,13 +48,13 @@ void Surface::commitParameters()
     m_visibilityMask = ~0u;
   } else {
     uint32_t mask = 0;
-    mask |= visCamera ? ccl::PATH_RAY_CAMERA : 0;
-    mask |= visDiffuse ? ccl::PATH_RAY_DIFFUSE : 0;
+    mask |= visCamera ? ccl::PATH_RAY_VISIBILITY_CAMERA : 0;
+    mask |= visDiffuse ? ccl::PATH_RAY_VISIBILITY_DIFFUSE : 0;
     // sharp specular rays carry GLOSSY|SINGULAR, so raise both
-    mask |= visGlossy ? (ccl::PATH_RAY_GLOSSY | ccl::PATH_RAY_SINGULAR) : 0;
-    mask |= visTransmission ? ccl::PATH_RAY_TRANSMIT : 0;
-    mask |= visShadow ? ccl::PATH_RAY_SHADOW : 0;
-    mask |= visVolumeScatter ? ccl::PATH_RAY_VOLUME_SCATTER : 0;
+    mask |= visGlossy ? (ccl::PATH_RAY_VISIBILITY_GLOSSY | ccl::PATH_RAY_SINGULAR) : 0;
+    mask |= visTransmission ? ccl::PATH_RAY_VISIBILITY_TRANSMIT : 0;
+    mask |= visShadow ? ccl::PATH_RAY_VISIBILITY_SHADOW : 0;
+    mask |= visVolumeScatter ? ccl::PATH_RAY_VISIBILITY_VOLUME_SCATTER : 0;
     m_visibilityMask = mask;
   }
 

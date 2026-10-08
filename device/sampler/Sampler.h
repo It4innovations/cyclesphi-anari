@@ -48,7 +48,8 @@ struct Sampler : public Object
   };
 
   // Fetch the ANARI attribute 'inAttribute' names ('color', 'attribute0'..3,
-  // 'primitiveId') as graph outputs; unsupported names warn and yield the
+  // 'primitiveId', 'worldPosition', 'worldNormal', 'objectPosition',
+  // 'objectNormal') as graph outputs; unsupported names warn and yield the
   // constant (0,0,0,1).
   ColorAlpha makeAttributeInput(
       ccl::ShaderGraph *graph, const std::string &attribute) const;

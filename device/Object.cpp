@@ -15,7 +15,13 @@ namespace anari_cycles {
 
 Object::Object(ANARIDataType type, CyclesGlobalState *s)
     : helium::BaseObject(type, s)
-{}
+{
+  // helium only flushes a commit when a parameter changed since the last
+  // one, so an object committed without any parameter set (e.g. a default
+  // 'matte' material) would never be committed or finalized and stay
+  // invalid. Count creation as a change.
+  markParameterChanged();
+}
 
 void Object::commitParameters()
 {

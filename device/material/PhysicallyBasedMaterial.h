@@ -17,6 +17,11 @@ struct PhysicallyBasedMaterial : public Material
 
  private:
   void makeGraph() override;
+  const char *xmlTemplateName() const override
+  {
+    return "physicallyBased";
+  }
+  void applyXmlTemplateParameters(ccl::PrincipledBsdfNode *bsdf) override;
 
   ccl::PrincipledBsdfNode *m_bsdf{nullptr};
   std::string m_colorAttr;

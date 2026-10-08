@@ -8,6 +8,7 @@
 #include "OSLMaterial.h"
 #include "PhysicallyBasedMaterial.h"
 #include "ToonMaterial.h"
+#include "XmlScene.h"
 // std
 #include <algorithm>
 #include <cmath>
@@ -56,6 +57,15 @@ void Material::finalize()
   // KERNEL_FEATURE_VOLUME), so it must see the fully built graph.
   if (m_graphOwned)
     m_shader->set_graph(std::move(m_graphOwned));
+  const char *templateName = xmlTemplateName();
+  if (templateName
+      && xmlApplyShaderTemplate(*deviceState(), m_shader, templateName)) {
+    m_graph = m_shader->graph.get();
+    for (ccl::ShaderNode *node : m_graph->nodes) {
+      if (node->type == ccl::PrincipledBsdfNode::get_node_type())
+        applyXmlTemplateParameters(static_cast<ccl::PrincipledBsdfNode *>(node));
+    }
+  }
   if (m_shader->graph)
     m_shader->tag_update(deviceState()->scene);
   Object::finalize();

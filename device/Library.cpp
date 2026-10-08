@@ -40,6 +40,14 @@
 #include <mutex>
 #ifndef _WIN32
 #include <dlfcn.h>
+#else
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
 #endif
 
 namespace anari_cycles {
@@ -70,9 +78,20 @@ static void initCyclesRuntime()
       ccl::path_init(ccl::path_join(pluginDir, "cycles"), "");
     }
 #else
-    // TODO(Windows): resolve the module path via GetModuleHandleExA(
-    // GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS) + GetModuleFileNameA and call
-    // ccl::path_init() the same way.
+    HMODULE module = nullptr;
+    if (GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS
+                | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+            reinterpret_cast<LPCWSTR>(&initCyclesRuntime),
+            &module)) {
+      wchar_t path[MAX_PATH * 4];
+      const DWORD length =
+          GetModuleFileNameW(module, path, DWORD(sizeof(path) / sizeof(path[0])));
+      if (length > 0 && length < DWORD(sizeof(path) / sizeof(path[0]))) {
+        const ccl::string pluginDir =
+            ccl::path_dirname(ccl::string_from_wstring(std::wstring(path, length)));
+        ccl::path_init(ccl::path_join(pluginDir, "cycles"), "");
+      }
+    }
 #endif
   });
 }

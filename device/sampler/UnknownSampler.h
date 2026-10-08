@@ -14,16 +14,9 @@ struct UnknownSampler : public Sampler
   UnknownSampler(std::string_view subtype, CyclesGlobalState *s)
       : Sampler(s), m_subtype(subtype)
   {
-    if (m_subtype == "image3D") {
-      reportMessage(ANARI_SEVERITY_WARNING,
-          "'image3D' samplers are not supported by the cycles device (Cycles "
-          "has no dense 3D image textures); the sampler is treated as an "
-          "unknown object");
-    } else {
-      reportMessage(ANARI_SEVERITY_WARNING,
-          "created unknown ANARI_SAMPLER object of subtype '%s'",
-          m_subtype.c_str());
-    }
+    reportMessage(ANARI_SEVERITY_WARNING,
+        "created unknown ANARI_SAMPLER object of subtype '%s'",
+        m_subtype.c_str());
   }
 
   bool isValid() const override

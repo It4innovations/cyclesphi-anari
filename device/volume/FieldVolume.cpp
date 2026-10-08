@@ -94,6 +94,8 @@ void FieldVolume::syncCyclesMesh(
       make_float3(lo.x, hi.y, lo.z),
       make_float3(hi.x, hi.y, lo.z)};
 
+  // All faces wound counter-clockwise seen from outside: Cycles tells
+  // entering a volume from leaving it by the side of the triangle a ray hits.
   const std::vector<int3> faces{make_int3(0, 1, 2),
       make_int3(2, 1, 3),
       make_int3(1, 5, 3),
@@ -104,15 +106,11 @@ void FieldVolume::syncCyclesMesh(
       make_int3(6, 0, 2),
       make_int3(2, 3, 6),
       make_int3(6, 3, 7),
-      make_int3(5, 4, 1),
-      make_int3(1, 4, 0)};
-
-  ccl::array<ccl::float3> P;
-  P.resize(vertices.size());
-  std::copy(vertices.cbegin(), vertices.cend(), P.begin());
-  m_mesh->set_verts(P);
+      make_int3(5, 1, 4),
+      make_int3(1, 0, 4)};
 
   m_mesh->resize_mesh(int(vertices.size()), int(faces.size()));
+  std::copy(vertices.cbegin(), vertices.cend(), m_mesh->get_position_for_write());
   auto *triangles = m_mesh->get_triangles().data();
   auto *shader = m_mesh->get_shader().data();
   auto *smooth = m_mesh->get_smooth().data();

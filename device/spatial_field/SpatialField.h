@@ -34,6 +34,15 @@ struct SpatialField : public Object
   virtual ccl::ShaderOutput *createCyclesSamplingNodes(
       ccl::ShaderGraph *graph) = 0;
 
+  // Optional coverage in [0,1] of the field's domain at the shading position
+  // (fields that do not fill their bounding box, e.g. unstructured meshes,
+  // are 0 outside their cells). Consumers scale the extinction by it. Returns
+  // nullptr when the field covers its whole bounds.
+  virtual ccl::ShaderOutput *createCyclesCoverageNodes(ccl::ShaderGraph *)
+  {
+    return nullptr;
+  }
+
   // Fields sampled through Cycles' native voxel-grid (VDB) path store their
   // grid image in m_voxelImage; the consuming volume re-attaches it to its
   // geometry here on every finalize (the geometry was just rebuilt, which
@@ -65,16 +74,22 @@ struct SpatialField : public Object
   // m_voxelAttributeName (the kernel samples the attached grid image at the
   // shading position with the image's own interpolation mode).
   ccl::ShaderOutput *createVoxelSamplingNodes(ccl::ShaderGraph *graph);
+  // Same for the optional coverage grid image (m_coverageImage).
+  ccl::ShaderOutput *createVoxelCoverageNodes(ccl::ShaderGraph *graph);
 
   // Grid image sampled through the voxel attribute (empty when this field
   // does not use the VDB path).
   ccl::ImageHandle m_voxelImage;
+  // Optional second grid image (coverage of the field's domain), attached
+  // alongside m_voxelImage under its own attribute name.
+  ccl::ImageHandle m_coverageImage;
 
  private:
   // Unique per-instance attribute name tying createVoxelSamplingNodes'
   // AttributeNode to the image attached by attachVoxelAttributes (a volume
   // shader can sample several fields, e.g. principled density+temperature).
   ccl::ustring m_voxelAttributeName;
+  ccl::ustring m_coverageAttributeName;
 };
 
 } // namespace anari_cycles

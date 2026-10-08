@@ -25,6 +25,9 @@ struct Spot : public Light
   float m_openingAngle{M_PI};
   float m_falloffAngle{0.1f};
   float m_radius{0.f};
+  // Vendor parameter 'softFalloff': Cycles' soft falloff of sphere lights
+  // (Blender's default for point and spot lights), off by default.
+  bool m_softFalloff{false};
 };
 
 } // namespace anari_cycles

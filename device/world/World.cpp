@@ -8,6 +8,7 @@
 #include "scene/background.h"
 #include "scene/devicescene.h"
 #include "scene/object.h"
+#include "scene/volume.h"
 
 namespace anari_cycles {
 
@@ -84,6 +85,14 @@ void World::setCyclesWorldObjects(const helium::box1 &shutter)
   // objects.clear(): managers cache per-object state keyed by Object pointer
   // (e.g. VolumeManager::object_octrees_) and only delete_nodes() tells them
   // to drop those entries.
+  auto hasVolumeObject = [&]() {
+    return std::any_of(
+        scene->objects.begin(), scene->objects.end(), [](ccl::Object *o) {
+          return o->get_geometry() && o->get_geometry()->has_volume;
+        });
+  };
+  bool volumeObjectsChanged = hasVolumeObject();
+
   if (!scene->objects.empty()) {
     ccl::set<ccl::Object *> oldObjects;
     for (size_t i = 0; i < scene->objects.size(); i++)
@@ -106,6 +115,16 @@ void World::setCyclesWorldObjects(const helium::box1 &shutter)
       objectsHaveMotion |= i->addInstanceObjectsToCyclesScene(shutter);
     });
   }
+
+  // The volume octree is only rebuilt when VolumeManager is tagged, and
+  // VolumeManager::tag_update(objects) ignores new objects while it has no
+  // octrees yet -- e.g. a volume geometry finalized for an earlier frame and
+  // instanced only now, which then renders without an octree (skipped on the
+  // GPU, out-of-bounds reads on the CPU). Objects are rebuilt from scratch
+  // here, so rebuild the octree whenever volume objects come or go.
+  volumeObjectsChanged |= hasVolumeObject();
+  if (volumeObjectsChanged)
+    scene->volume_manager->tag_update();
 
   state.objectsHaveMotion = objectsHaveMotion;
   state.syncIntegratorMotionBlur();

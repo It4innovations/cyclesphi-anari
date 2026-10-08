@@ -158,15 +158,15 @@ void Curve::setCurves(ccl::Hair *hair,
     const std::vector<int> &firstKey,
     const std::vector<uint32_t> &keyVertex) const
 {
-  ccl::array<ccl::float3> keys;
-  ccl::array<float> radius;
-  ccl::array<int> first;
-  ccl::array<int> shader;
+  // Keys and radii are the ATTR_STD_POSITION/ATTR_STD_RADIUS attributes;
+  // resize_curves() also resizes attributes added on a previous sync to the
+  // new key count before setAttributes() writes them.
+  hair->resize_curves(int(firstKey.size()), int(keyVertex.size()));
 
-  auto *dstKey = keys.resize(keyVertex.size());
-  auto *dstRadius = radius.resize(keyVertex.size());
-  auto *dstFirst = first.resize(firstKey.size());
-  auto *dstShader = shader.resize(firstKey.size());
+  auto *dstKey = hair->get_position_for_write();
+  auto *dstRadius = hair->get_radius_for_write();
+  auto *dstFirst = hair->get_curve_first_key().data();
+  auto *dstShader = hair->get_curve_shader().data();
 
   const auto *srcPoint = m_vertexPosition->beginAs<anari_vec::float3>();
   const float *srcRadius =
@@ -183,15 +183,8 @@ void Curve::setCurves(ccl::Hair *hair,
     dstShader[c] = 0;
   }
 
-  hair->set_curve_keys(keys);
-  hair->set_curve_radius(radius);
-  hair->set_curve_first_key(first);
-  hair->set_curve_shader(shader);
-
-  // Attributes added on a previous sync keep their old element count;
-  // resize them to the new key count before setAttributes() writes them
-  // (the mesh path gets this implicitly from resize_mesh()).
-  hair->attributes.resize();
+  hair->tag_curve_first_key_modified();
+  hair->tag_curve_shader_modified();
 }
 
 void Curve::setAttributes(ccl::Hair *hair,

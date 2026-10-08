@@ -17,6 +17,11 @@ struct MatteMaterial : public Material
 
  private:
   void makeGraph() override;
+  const char *xmlTemplateName() const override
+  {
+    return "matte";
+  }
+  void applyXmlTemplateParameters(ccl::PrincipledBsdfNode *bsdf) override;
 
   ccl::PrincipledBsdfNode *m_bsdf{nullptr};
 

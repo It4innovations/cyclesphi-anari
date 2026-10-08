@@ -43,6 +43,12 @@ void MatteMaterial::finalize()
   Material::finalize();
 }
 
+void MatteMaterial::applyXmlTemplateParameters(ccl::PrincipledBsdfNode *bsdf)
+{
+  bsdf->set_base_color(m_color);
+  bsdf->set_alpha(m_mode == helium::AlphaMode::OPAQUE ? 1.f : m_opacity);
+}
+
 void MatteMaterial::makeGraph()
 {
   Material::makeGraph();

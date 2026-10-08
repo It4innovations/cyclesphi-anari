@@ -33,6 +33,11 @@ struct StructuredRegularField : public SpatialField
   // tricubic. Returns false (falling back to the 2D-atlas path) when the
   // build lacks VDB support or the voxel type is unsupported.
   bool finalizeCubicGrid();
+  // CyclesPhi: dense raw 3D voxel texture (IMAGE_DATA_TYPE_RAW3D_FLOAT) sampled
+  // directly by the kernel with nearest, linear or cubic interpolation, which
+  // avoids the 2D atlas indirection and the OpenVDB conversion. Returns false
+  // when not available, falling back to the other paths.
+  bool finalizeRaw3DGrid();
   ccl::ShaderOutput *createAtlasSamplingNodes(ccl::ShaderGraph *graph);
 
   enum class Filter
@@ -46,6 +51,8 @@ struct StructuredRegularField : public SpatialField
   anari_vec::float3 m_origin{0.f, 0.f, 0.f};
   anari_vec::float3 m_spacing{1.f, 1.f, 1.f};
   Filter m_filter{Filter::LINEAR};
+  // CyclesPhi raw 3D path, parameter 'cyclesphi.raw3d' (default on).
+  bool m_useRaw3D{true};
 
   // Z slices tiled into a 2D image atlas (see VolumeImageLoader); used for
   // nearest/linear filtering (and as the cubic fallback).

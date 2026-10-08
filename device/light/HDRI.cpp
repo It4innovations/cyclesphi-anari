@@ -76,23 +76,26 @@ void HDRI::rebuildEnvironmentShader()
 
   // Build orthonormal basis from direction and up vectors (both already
   // normalized at commit); guard against 'up' parallel to 'direction'.
+  // The equirectangular texture space of Cycles has the image center at +X
+  // and up at +Z. Its axes in world space are x = 'direction', z = 'up' and
+  // y = up x direction, a proper (right-handed) rotation M. The lookup
+  // direction is M^-1 applied to the world direction.
   auto forward = m_direction;
   auto up = m_up;
-  auto right = math::cross(forward, up);
-  if (math::length(right) < 1e-6f) {
+  auto left = math::cross(up, forward);
+  if (math::length(left) < 1e-6f) {
     reportMessage(ANARI_SEVERITY_WARNING,
         "hdri light 'up' is parallel to 'direction'; picking an "
         "arbitrary perpendicular up vector");
     up = std::abs(forward.z) < 0.99f ? math::float3{0.f, 0.f, 1.f}
                                      : math::float3{0.f, 1.f, 0.f};
-    right = math::cross(forward, up);
+    left = math::cross(up, forward);
   }
-  right = math::normalize(right);
-  up = math::normalize(math::cross(right, forward)); // Ensure orthogonality
+  left = math::normalize(left);
+  up = math::normalize(math::cross(forward, left)); // Ensure orthogonality
 
-  // Rotation from the standard basis to the custom orientation, as
-  // axis-angle for the Cycles vector rotation node.
-  math::mat3 rotationMat = {forward, right, up};
+  // As axis-angle for the Cycles vector rotation node, inverted.
+  math::mat3 rotationMat = {forward, left, up};
   auto rotation = math::rotation_quat(rotationMat);
   float angle = qangle(rotation);
   math::float3 axis = qaxis(rotation);
@@ -101,6 +104,7 @@ void HDRI::rebuildEnvironmentShader()
 
   auto vectorRotate = graph->create_node<ccl::VectorRotateNode>();
   vectorRotate->set_rotate_type(ccl::NODE_VECTOR_ROTATE_TYPE_AXIS);
+  vectorRotate->set_invert(true);
   vectorRotate->set_angle(angle);
   vectorRotate->set_axis(ccl::make_float3(axis.x, axis.y, axis.z));
   graph->connect(
@@ -124,6 +128,9 @@ void HDRI::rebuildEnvironmentShader()
   ccl::ImageParams params;
   params.alpha_type = IMAGE_ALPHA_AUTO;
   params.interpolation = INTERPOLATION_LINEAR;
+  // Wrap around like Cycles' own environment textures; the default clip
+  // extension blends the borders of the map with black.
+  params.extension = EXTENSION_REPEAT;
 
   env_tex->handle = deviceState()->scene->image_manager->add_image(
       std::move(loader), params, false);

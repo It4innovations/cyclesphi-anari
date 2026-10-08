@@ -136,7 +136,9 @@ void Renderer::commitParameters()
   // makeRendererCurrent()/pushSamplingState(), and the Cycles socket setters
   // themselves no-op when the value is unchanged.
   auto &sp = m_sampling;
-  sp.maxBounce = std::max(0, getParam<int>("maxBounce", 7));
+  // 'maxRayDepth' (VisRTX style renderer parameter) is an alias of 'maxBounce'.
+  sp.maxBounce = std::max(0,
+      getParam<int>("maxBounce", getParam<int>("maxRayDepth", 7)));
   sp.maxDiffuseBounce = std::max(0, getParam<int>("maxDiffuseBounce", 7));
   sp.maxGlossyBounce = std::max(0, getParam<int>("maxGlossyBounce", 7));
   sp.maxTransmissionBounce =
@@ -154,8 +156,10 @@ void Renderer::commitParameters()
   sp.filterGlossy = std::max(0.f, getParam<float>("filterGlossy", 0.f));
   sp.aoBounces = std::max(0, getParam<int>("aoBounces", 0));
   sp.aoFactor = std::max(0.f, getParam<float>("aoFactor", 0.f));
-  sp.aoDistance =
-      std::max(0.f, getParam<float>("aoDistance", 3.402823466e38f));
+  // 'ambientOcclusionDistance' (VisRTX style) is an alias of 'aoDistance'.
+  sp.aoDistance = std::max(0.f,
+      getParam<float>("aoDistance",
+          getParam<float>("ambientOcclusionDistance", 3.402823466e38f)));
   sp.adaptiveSampling = getParam<bool>("adaptiveSampling", true);
   sp.adaptiveThreshold =
       std::max(0.f, getParam<float>("adaptiveThreshold", 0.01f));
@@ -212,6 +216,25 @@ void Renderer::rebuildDefaultBackgroundShader()
   deviceState()->scene->default_background->tag_update(deviceState()->scene);
 }
 
+// cyclesphi: the XML default scene (see XmlScene.h) provides its own
+// background shader, only its named nodes are driven by the parameters.
+void Renderer::updateXmlBackgroundShader()
+{
+  auto &state = *deviceState();
+
+  if (state.xmlBgColor) {
+    state.xmlBgColor->set_color(ccl::make_float3(
+        m_backgroundColor.x, m_backgroundColor.y, m_backgroundColor.z));
+  }
+  if (state.xmlAmbientIntensity) {
+    // Same scale as the original cyclesphi-anari device.
+    state.xmlAmbientIntensity->set_strength(m_ambientRadiance / 4.f);
+  }
+
+  state.scene->default_background->tag_modified();
+  state.scene->default_background->tag_update(state.scene);
+}
+
 // Bake the ARRAY2D 'background' into linear float RGBA for the output
 // driver's screen-space composite. Runs under the frame's SceneLock with the
 // render thread idle, so it may read the source array safely. Like sampler
@@ -257,7 +280,10 @@ void Renderer::makeRendererCurrent()
   if (m_needsUpdateStatus.background || m_needsUpdateStatus.ambientLight) {
     m_needsUpdateStatus.background = false;
     m_needsUpdateStatus.ambientLight = false;
-    rebuildDefaultBackgroundShader();
+    if (deviceState()->xmlBgColor || deviceState()->xmlAmbientIntensity)
+      updateXmlBackgroundShader();
+    else
+      rebuildDefaultBackgroundShader();
   }
 #if defined(WITH_OPTIX) || defined(WITH_OPENIMAGEDENOISE)
   if (m_needsUpdateStatus.denoise) {

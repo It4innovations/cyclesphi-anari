@@ -64,11 +64,13 @@ PRIVATE
   renderer/Renderer.cpp
   sampler/Image1D.cpp
   sampler/Image2D.cpp
+  sampler/Image3D.cpp
   sampler/Sampler.cpp
   sampler/SamplerImageLoader.cpp
   spatial_field/NanoVDBField.cpp
   spatial_field/SpatialField.cpp
   spatial_field/StructuredRegularField.cpp
+  spatial_field/UnstructuredField.cpp
   spatial_field/VolumeImageLoader.cpp
   surface/Surface.cpp
   volume/FieldVolume.cpp
@@ -80,18 +82,33 @@ PRIVATE
   world/World.cpp
 )
 
+# CyclesPhi specific features: dense raw 3D voxel textures for structuredRegular spatial fields
+# and scenes, materials and volume shaders loaded from Cycles XML files (see CYCLES_XML_PATH).
+target_sources(${PROJECT_NAME}
+PRIVATE
+  XmlScene.cpp
+  ${CMAKE_SOURCE_DIR}/cyclesphi/src/app/cycles_xml_bin.cpp
+  ${CMAKE_SOURCE_DIR}/cyclesphi/src/app/cycles_xml_nodes.cpp
+)
+target_compile_definitions(${PROJECT_NAME} PRIVATE WITH_CYCLESPHI)
+if(WITH_CYCLES_PUGIXML)
+  target_compile_definitions(${PROJECT_NAME} PRIVATE WITH_PUGIXML WITH_SYSTEM_PUGIXML)
+endif()
+
 get_target_property(CYCLES_INCLUDE_DIRECTORIES cycles_bvh INCLUDE_DIRECTORIES)
 
 target_include_directories(${PROJECT_NAME}
 PRIVATE
   ${CMAKE_CURRENT_LIST_DIR}
   ${CYCLES_INCLUDE_DIRECTORIES}
-  ${CMAKE_SOURCE_DIR}/cycles/src
+  ${CMAKE_SOURCE_DIR}/cyclesphi/src
   $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
 )
 
 include(CheckCXXCompilerFlag)
-check_cxx_compiler_flag("-msse4.2" ANARI_CYCLES_HAS_SSE42)
+if(NOT MSVC)
+  check_cxx_compiler_flag("-msse4.2" ANARI_CYCLES_HAS_SSE42)
+endif()
 if(ANARI_CYCLES_HAS_SSE42)
   target_compile_options(${PROJECT_NAME} PRIVATE -msse4.2)
 endif()
@@ -146,8 +163,24 @@ PRIVATE
   cycles_graph
   cycles_util
   extern_sky
-  OpenImageIO::OpenImageIO
 )
+
+if(TARGET OpenImageIO::OpenImageIO)
+  target_link_libraries(${PROJECT_NAME} PRIVATE OpenImageIO::OpenImageIO)
+else()
+  # Precompiled libraries, provided by the CyclesPhi dependency targets (when visible here,
+  # otherwise they come transitively with the Cycles libraries).
+  foreach(_dep bf::dependencies::openimageio bf::dependencies::opencolorio
+                bf::dependencies::optional::pugixml)
+    if(TARGET ${_dep})
+      target_link_libraries(${PROJECT_NAME} PRIVATE ${_dep})
+    endif()
+  endforeach()
+endif()
+
+if(WIN32)
+  target_link_libraries(${PROJECT_NAME} PRIVATE version)
+endif()
 
 ## ANARI query code generation ##
 
@@ -166,6 +199,14 @@ anari_generate_queries(
   JSON_ROOT_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/json
   JSON_EXTENSION_FILES "${LOCAL_EXTENSION_JSONS}"
 )
+
+# Directory the plugin is installed to, its cycles/ subdirectory is the root
+# of the Cycles runtime paths (see Library.cpp).
+if(WIN32)
+  set(ANARI_CYCLES_PLUGIN_INSTALL_DIR ${CMAKE_INSTALL_BINDIR})
+else()
+  set(ANARI_CYCLES_PLUGIN_INSTALL_DIR ${CMAKE_INSTALL_LIBDIR})
+endif()
 
 ## Precompiled GPU kernels ##
 
@@ -214,7 +255,7 @@ if(WITH_CYCLES_CUDA_BINARIES)
   add_dependencies(${PROJECT_NAME} anari_cycles_gpu_kernels)
 
   install(FILES ${ANARI_CYCLES_KERNEL_FILES}
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cycles/lib
+    DESTINATION ${ANARI_CYCLES_PLUGIN_INSTALL_DIR}/cycles/lib
   )
 endif()
 
@@ -224,4 +265,10 @@ install(TARGETS ${PROJECT_NAME}
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)
+
+# cyclesphi XML scene and shader templates, found at path_get("anari") (see
+# XmlScene.h).
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/xml/
+  DESTINATION ${ANARI_CYCLES_PLUGIN_INSTALL_DIR}/cycles/anari
 )

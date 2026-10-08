@@ -37,10 +37,20 @@ option(ANARI_CYCLES_USE_OIDN "Use OpenImageDenoise for CPU denoising" OFF)
 
 find_package(anari 0.15.0 REQUIRED)
 find_package(Python3 REQUIRED)
+
+# CyclesPhi (the Cycles fork in the 'cyclesphi' submodule) is built with Blender's precompiled
+# libraries by default. CYCLES_LIB_DIR selects the library directory, use the libraries of the
+# Blender build the device is loaded into to avoid mismatching shared libraries in one process.
+option(WITH_LIBS_PRECOMPILED "Use Blender's precompiled library dependencies" ON)
+set(CYCLES_LIB_DIR "" CACHE PATH
+  "Directory with Blender's precompiled libraries (default: cyclesphi/lib/<platform>)")
+
+if(NOT WITH_LIBS_PRECOMPILED)
 find_package(OpenImageIO REQUIRED)
 find_package(OpenColorIO 2.2 CONFIG QUIET)
+endif()
 
-if(NOT TARGET OpenColorIO::OpenColorIO)
+if(NOT WITH_LIBS_PRECOMPILED AND NOT TARGET OpenColorIO::OpenColorIO)
   if(NOT OpenColorIO_INCLUDE_DIR OR NOT OpenColorIO_LIBRARY)
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(OpenColorIO IMPORTED_TARGET "OpenColorIO>=2.2")
@@ -68,21 +78,28 @@ if(NOT TARGET OpenColorIO::OpenColorIO)
   endif()
 endif()
 
-set(USD_OVERRIDE_OPENCOLORIO ON)
+# OpenColorIO is found above unless the precompiled libraries are used, in
+# which case Cycles finds it in the library directory.
+if(NOT WITH_LIBS_PRECOMPILED)
+  set(USD_OVERRIDE_OPENCOLORIO ON)
+endif()
+
+# The CyclesPhi client application (requires braas-hpc-renderengine) is not
+# needed by the ANARI device.
+set(WITH_CYCLESPHI OFF CACHE BOOL "Build the CyclesPhi client application")
 
 ## Cycles library ##
 
 # Cycles feature toggles. Everything defaults to OFF for a dependency-free
 # first configure; enable features individually with -DWITH_CYCLES_<X>=ON
 # (each one pulls in the corresponding external dependency).
-set(WITH_LIBS_PRECOMPILED             OFF CACHE BOOL "Use Blender's precompiled library dependencies")
 set(WITH_CYCLES_ALEMBIC               OFF CACHE BOOL "Alembic procedural support (requires Alembic)")
 set(WITH_CYCLES_DEVICE_HIP            OFF CACHE BOOL "AMD HIP device support")
 set(WITH_CYCLES_EMBREE                OFF CACHE BOOL "Embree CPU ray tracing (requires Embree >= 3.8)")
 set(WITH_CYCLES_HYDRA_RENDER_DELEGATE OFF CACHE BOOL "Hydra render delegate (requires USD)")
-set(WITH_CYCLES_NANOVDB               OFF CACHE BOOL "NanoVDB volume support (requires NanoVDB)")
+set(WITH_CYCLES_NANOVDB               ${WITH_LIBS_PRECOMPILED} CACHE BOOL "NanoVDB volume support (requires NanoVDB)")
 set(WITH_CYCLES_OPENSUBDIV            OFF CACHE BOOL "Subdivision surfaces (requires OpenSubdiv)")
-set(WITH_CYCLES_OPENVDB               OFF CACHE BOOL "OpenVDB volume support (requires OpenVDB)")
+set(WITH_CYCLES_OPENVDB               ${WITH_LIBS_PRECOMPILED} CACHE BOOL "OpenVDB volume support (requires OpenVDB)")
 set(WITH_CYCLES_OSL                   OFF CACHE BOOL "Open Shading Language support (requires OSL)")
 set(WITH_CYCLES_PUGIXML               ON  CACHE BOOL "XML support (requires pugixml)")
 set(WITH_CYCLES_USD                   OFF CACHE BOOL "USD scene support (requires USD)")
@@ -95,6 +112,19 @@ set(WITH_CYCLES_USD                   OFF CACHE BOOL "USD scene support (require
 # The NanoVDB headers usually ship with OpenVDB; when they are not installed
 # (some distro OpenVDB packages omit them), fetch the headers from the OpenVDB
 # release carrying the NanoVDB version this Cycles snapshot was tested with.
+# With precompiled libraries the NanoVDB headers come with OpenVDB.
+if(WITH_LIBS_PRECOMPILED AND NOT NANOVDB_ROOT_DIR)
+  if(CYCLES_LIB_DIR)
+    set(_anari_cycles_lib_dir "${CYCLES_LIB_DIR}")
+  elseif(WIN32)
+    set(_anari_cycles_lib_dir "${CMAKE_SOURCE_DIR}/cyclesphi/lib/windows_x64")
+  endif()
+  if(_anari_cycles_lib_dir AND EXISTS "${_anari_cycles_lib_dir}/openvdb/include/nanovdb")
+    set(NANOVDB_ROOT_DIR "${_anari_cycles_lib_dir}/openvdb")
+  endif()
+  unset(_anari_cycles_lib_dir)
+endif()
+
 if(WITH_CYCLES_NANOVDB)
   if(NOT WITH_CYCLES_OPENVDB)
     message(FATAL_ERROR
@@ -206,7 +236,7 @@ endif()
 # sources, headers, licenses) out of this project's install; only the ANARI
 # device is installed. The Cycles libraries still build as link dependencies
 # of the device, but the standalone 'cycles' app no longer builds by default.
-add_subdirectory(cycles EXCLUDE_FROM_ALL)
+add_subdirectory(cyclesphi EXCLUDE_FROM_ALL)
 
 # Cycles finds TBB headers and library independently, so a CMAKE_PREFIX_PATH
 # holding several TBB copies can pair legacy (2020) headers with a oneTBB
@@ -227,3 +257,10 @@ endif()
 ## ANARI device library ##
 
 add_subdirectory(device)
+
+## Test application ##
+
+option(ANARI_CYCLES_BUILD_TEST "Build the anari_cycles_test application" ON)
+if(ANARI_CYCLES_BUILD_TEST)
+  add_subdirectory(test)
+endif()
