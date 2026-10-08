@@ -456,15 +456,3 @@ Device/session:
     controls (DONE: `CYCLES_RENDERER_SAMPLING_CONTROLS`) + denoise first, then
     visibility/holdout/shadow-catcher (DONE: `CYCLES_SURFACE_COMPOSITING`),
     subdivision (DONE: `CYCLES_GEOMETRY_SUBDIVISION`), passes.
-
-## Appendix: how things were tested
-```sh
-cmake --build ~/build/claude/anari-cycles -j
-export ANARI_LIBRARY_PATH=~/build/claude/anari-cycles
-export LD_LIBRARY_PATH=~/build/claude/anari-cycles:$HOME/opt/anari/lib
-ANARI_LIBRARY=cycles ~/opt/anari/bin/anariInfo -l cycles
-ANARI_LIBRARY=cycles ~/opt/anari/bin/anariRenderTests            # writes PNGs to cwd
-ANARI_LIBRARY=cycles ~/opt/anari/bin/anariRenderTests -s demo cornell_box --num_samples 64
-```
-SDK 0.16.0; spec registry at `~/opt/anari/share/anari/code_gen/api/`;
-CTS available as `~/opt/anari/bin/anariCts`.

@@ -191,3 +191,7 @@ definitions live in `device/json/cycles_ext_*.json`.
   the Cycles compute backend, plus read-only properties listing available
   backends and reporting the one in use. ANARI has no standard way to
   select a backend within a device implementation.
+
+## Development
+
+AI agent harnesses were used for selected development, testing, and optimization tasks
