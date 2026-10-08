@@ -2,314 +2,200 @@
   "info": {
     "name": "CYCLES_DEVICE",
     "type": "device",
+    "comment": [
+      "Dependency stems prefixed with 'cycles_' resolve to trimmed local",
+      "copies in device/json/ (see CMakeLists.txt JSON_ROOT_LOCATION).",
+      "They advertise the official KHR extension names but omit registry",
+      "parameters this device does not implement yet.",
+      "khr_sampler_image3d is intentionally absent: Cycles has no dense 3D",
+      "image textures (creating an 'image3D' sampler warns and yields an",
+      "invalid object).",
+      "khr_frame_channel_object_id must stay listed after",
+      "khr_volume_transfer_function1d: its anonymous ANARI_VOLUME 'id' entry",
+      "only merges into subtypes that already exist."
+    ],
     "dependencies": [
       "anari_core_1_0",
       "anari_core_objects_base_1_0",
-      "ext_sampler_compressed_image2d",
-      "ext_sampler_compressed_format_bc123",
-      "ext_sampler_compressed_format_bc45",
       "khr_array1d_region",
-      "khr_camera_depth_of_field",
-      "khr_camera_orthographic",
-      "khr_camera_perspective",
+      "cycles_khr_camera_omnidirectional",
+      "cycles_khr_camera_orthographic",
+      "cycles_khr_camera_perspective",
+      "cycles_khr_camera_depth_of_field",
+      "cycles_khr_camera_shutter",
+      "cycles_khr_camera_rolling_shutter",
+      "cycles_khr_camera_stereo",
+      "cycles_khr_camera_motion_transformation",
+      "cycles_khr_geometry_cone",
+      "cycles_khr_geometry_curve",
+      "cycles_khr_geometry_cylinder",
+      "cycles_khr_geometry_isosurface",
+      "cycles_khr_geometry_quad",
+      "cycles_khr_geometry_quad_motion_deformation",
+      "cycles_khr_geometry_sphere",
+      "cycles_khr_geometry_triangle",
+      "cycles_khr_geometry_triangle_motion_deformation",
+      "cycles_khr_instance_transform",
+      "cycles_khr_instance_transform_array",
+      "cycles_khr_instance_motion_transform",
+      "cycles_khr_instance_motion_scale_rotation_translation",
+      "cycles_khr_sampler_image1d",
+      "cycles_khr_sampler_image2d",
+      "khr_sampler_primitive",
+      "khr_sampler_transform",
       "khr_device_synchronization",
       "khr_frame_accumulation",
+      "khr_frame_channel_albedo",
+      "khr_frame_channel_normal",
       "khr_frame_channel_primitive_id",
-      "khr_frame_channel_object_id",
       "khr_frame_channel_instance_id",
       "khr_frame_completion_callback",
-      "khr_geometry_cone",
-      "khr_geometry_curve",
-      "khr_geometry_cylinder",
-      "khr_geometry_quad",
-      "khr_geometry_sphere",
-      "khr_geometry_triangle",
-      "khr_instance_transform",
-      "khr_instance_transform_array",
       "khr_light_directional",
       "khr_light_hdri",
       "khr_light_point",
+      "cycles_khr_light_quad",
+      "cycles_khr_light_ring",
       "khr_light_spot",
+      "cycles_ext_light_sky",
+      "cycles_khr_area_lights",
+      "cycles_khr_renderer_ambient_light",
       "khr_material_matte",
-      "khr_material_physically_based",
-      "khr_renderer_ambient_light",
-      "khr_renderer_background_color",
-      "khr_renderer_background_image",
-      "khr_sampler_image1d",
-      "khr_sampler_image2d",
-      "khr_sampler_image3d",
-      "khr_sampler_primitive",
-      "khr_sampler_transform",
-      "khr_spatial_field_nanovdb",
+      "cycles_khr_material_physically_based",
+      "cycles_ext_material_subsurface",
+      "cycles_ext_material_emissive_strength",
+      "cycles_ext_material_toon",
+      "cycles_ext_material_hair",
+      "cycles_khr_renderer_background_color",
+      "cycles_khr_renderer_background_image",
+      "khr_renderer_denoise",
+      "cycles_ext_renderer_denoise_start",
+      "cycles_ext_renderer_sampling_controls",
+      "cycles_ext_renderer_interactive_scaling",
+      "cycles_ext_frame_channels",
+      "cycles_ext_surface_compositing",
+      "cycles_ext_light_linking",
+      "cycles_ext_lightgroups",
+      "cycles_ext_geometry_subdivision",
+      "cycles_ext_material_osl",
+      "cycles_ext_device_selection",
       "khr_spatial_field_structured_regular",
-      "khr_volume_transfer_function1d"
+      "khr_spatial_field_structured_regular_cubic",
+      "khr_spatial_field_nanovdb",
+      "khr_volume_transfer_function1d",
+      "cycles_ext_volume_principled",
+      "khr_frame_channel_object_id"
     ]
   },
   "objects": [
+    {
+      "type": "ANARI_CAMERA",
+      "name": "perspective",
+      "parameters": [
+        {
+          "name": "apertureBlades",
+          "types": [
+            "ANARI_INT32"
+          ],
+          "tags": [],
+          "default": [
+            0
+          ],
+          "description": "Cycles vendor addition: aperture blade count for polygonal bokeh (< 3 gives a circular aperture)"
+        },
+        {
+          "name": "apertureRotation",
+          "types": [
+            "ANARI_FLOAT32"
+          ],
+          "tags": [],
+          "default": [
+            0.0
+          ],
+          "description": "Cycles vendor addition: aperture blade rotation in radians"
+        }
+      ]
+    },
+    {
+      "type": "ANARI_CAMERA",
+      "name": "orthographic",
+      "parameters": [
+        {
+          "name": "apertureBlades",
+          "types": [
+            "ANARI_INT32"
+          ],
+          "tags": [],
+          "default": [
+            0
+          ],
+          "description": "Cycles vendor addition: aperture blade count for polygonal bokeh (< 3 gives a circular aperture)"
+        },
+        {
+          "name": "apertureRotation",
+          "types": [
+            "ANARI_FLOAT32"
+          ],
+          "tags": [],
+          "default": [
+            0.0
+          ],
+          "description": "Cycles vendor addition: aperture blade rotation in radians"
+        }
+      ]
+    },
+    {
+      "type": "ANARI_CAMERA",
+      "name": "omnidirectional",
+      "parameters": [
+        {
+          "name": "apertureBlades",
+          "types": [
+            "ANARI_INT32"
+          ],
+          "tags": [],
+          "default": [
+            0
+          ],
+          "description": "Cycles vendor addition: aperture blade count for polygonal bokeh (< 3 gives a circular aperture)"
+        },
+        {
+          "name": "apertureRotation",
+          "types": [
+            "ANARI_FLOAT32"
+          ],
+          "tags": [],
+          "default": [
+            0.0
+          ],
+          "description": "Cycles vendor addition: aperture blade rotation in radians"
+        }
+      ]
+    },
     {
       "type": "ANARI_RENDERER",
       "name": "default",
       "parameters": [
         {
-          "name": "sampleLimit",
-          "types": ["ANARI_INT32"],
-          "tags": [],
-          "default": 128,
-          "minimum": 0,
-          "description": "stop refining the frame after this number of samples"
-        },
-        {
-          "name": "denoise",
-          "types": ["ANARI_BOOL"],
-          "tags": [],
-          "default": false,
-          "description": "enable the OptiX denoiser"
-        },
-        {
-          "name": "cullTriangleBackfaces",
-          "types": ["ANARI_BOOL"],
-          "tags": [],
-          "default": false,
-          "description": "enable triangle back face culling"
-        },
-        {
-          "name": "checkerboarding",
-          "types": ["ANARI_BOOL"],
-          "tags": [],
-          "default": false,
-          "description": "use checkerboarding to lower frame latency"
-        },
-        {
           "name": "pixelSamples",
-          "types": ["ANARI_INT32"],
-          "tags": [],
-          "default": 1,
-          "minimum": 1,
-          "description": "samples per-pixel"
-        },
-        {
-          "name": "maxRayDepth",
-          "types": ["ANARI_INT32"],
-          "tags": [],
-          "default": 5,
-          "minimum": 1,
-          "description": "Maximum number of ray bounces"
-        },
-        {
-          "name": "ambientSamples",
-          "types": ["ANARI_INT32"],
-          "tags": [],
-          "default": 1,
-          "minimum": 0,
-          "description": "AO samples per-pixel, per-frame"
-        },
-        {
-          "name": "ambientOcclusionDistance",
-          "types": ["ANARI_FLOAT32"],
-          "tags": [],
-          "default": 1e20,
-          "minimum": 0,
-          "description": "ambient occlusion distance"
-        },
-        {
-          "name": "lightFalloff",
-          "types": ["ANARI_FLOAT32"],
-          "tags": [],
-          "default": 1.0,
-          "minimum": 0.0,
-          "maximum": 1.0,
-          "description": "light falloff"
-        },
-        {
-          "name": "volumeSamplingRate",
-          "types": ["ANARI_FLOAT32"],
-          "tags": [],
-          "default": 0.125,
-          "minimum": 0.001,
-          "maximum": 10.0,
-          "description": "sampling rate of volumes when ray marching"
-        }
-      ]
-    },
-    {
-      "type": "ANARI_RENDERER",
-      "name": "ao",
-      "parameters": [
-        {
-          "name": "sampleLimit",
-          "types": ["ANARI_INT32"],
-          "tags": [],
-          "default": 128,
-          "minimum": 0,
-          "description": "stop refining the frame after this number of samples"
-        },
-        {
-          "name": "denoise",
-          "types": ["ANARI_BOOL"],
-          "tags": [],
-          "default": false,
-          "description": "enable the OptiX denoiser"
-        },
-        {
-          "name": "cullTriangleBackfaces",
-          "types": ["ANARI_BOOL"],
-          "tags": [],
-          "default": false,
-          "description": "enable triangle back face culling"
-        },
-        {
-          "name": "checkerboarding",
-          "types": ["ANARI_BOOL"],
-          "tags": [],
-          "default": false,
-          "description": "use checkerboarding to lower frame latency"
-        },
-        {
-          "name": "pixelSamples",
-          "types": ["ANARI_INT32"],
-          "tags": [],
-          "default": 1,
-          "minimum": 1,
-          "description": "samples per-pixel"
-        },
-        {
-          "name": "ambientSamples",
-          "types": ["ANARI_INT32"],
-          "tags": [],
-          "default": 1,
-          "minimum": 0,
-          "description": "AO samples per-pixel, per-frame"
-        },
-        {
-          "name": "ambientOcclusionDistance",
-          "types": ["ANARI_FLOAT32"],
-          "tags": [],
-          "default": 1e20,
-          "minimum": 0,
-          "description": "ambient occlusion distance"
-        },
-        {
-          "name": "volumeSamplingRate",
-          "types": ["ANARI_FLOAT32"],
-          "tags": [],
-          "default": 0.125,
-          "minimum": 0.001,
-          "maximum": 10.0,
-          "description": "sampling rate of volumes when ray marching"
-        }
-      ]
-    },
-    {
-      "type": "ANARI_RENDERER",
-      "name": "dpt",
-      "parameters": [
-        {
-          "name": "sampleLimit",
-          "types": ["ANARI_INT32"],
-          "tags": [],
-          "default": 128,
-          "minimum": 0,
-          "description": "stop refining the frame after this number of samples"
-        },
-        {
-          "name": "denoise",
-          "types": ["ANARI_BOOL"],
-          "tags": [],
-          "default": false,
-          "description": "enable the OptiX denoiser"
-        },
-        {
-          "name": "cullTriangleBackfaces",
-          "types": ["ANARI_BOOL"],
-          "tags": [],
-          "default": false,
-          "description": "enable triangle back face culling"
-        },
-        {
-          "name": "checkerboarding",
-          "types": ["ANARI_BOOL"],
-          "tags": [],
-          "default": false,
-          "description": "use checkerboarding to lower frame latency"
-        },
-        {
-          "name": "pixelSamples",
-          "types": ["ANARI_INT32"],
-          "tags": [],
-          "default": 1,
-          "minimum": 1,
-          "description": "samples per-pixel"
-        }
-      ]
-    },
-    {
-      "type": "ANARI_RENDERER",
-      "name": "raycast",
-      "parameters": [
-        {
-          "name": "cullTriangleBackfaces",
-          "types": ["ANARI_BOOL"],
-          "tags": [],
-          "default": false,
-          "description": "enable triangle back face culling"
-        },
-        {
-          "name": "volumeSamplingRate",
-          "types": ["ANARI_FLOAT32"],
-          "tags": [],
-          "default": 0.125,
-          "minimum": 0.001,
-          "maximum": 10.0,
-          "description": "sampling rate of volumes when ray marching"
-        }
-      ]
-    },
-    {
-      "type": "ANARI_RENDERER",
-      "name": "debug",
-      "parameters": [
-        {
-          "name": "method",
-          "types": ["ANARI_STRING"],
-          "tags": [],
-          "default": "primIndex",
-          "values": [
-            "primitiveId",
-            "objectId",
-            "instanceId",
-            "primIndex",
-            "objIndex",
-            "instIndex",
-            "Ng",
-            "Ng.abs",
-            "Ns",
-            "Ns.abs",
-            "tU",
-            "tU.handedness",
-            "tV",
-            "uvw",
-            "backface",
-            "istri",
-            "isvol",
-            "hasMaterial",
-            "geometry.attribute0",
-            "geometry.attribute1",
-            "geometry.attribute2",
-            "geometry.attribute3",
-            "geometry.color"
+          "types": [
+            "ANARI_INT32"
           ],
-          "description": "run anariRenderFrame() asynchronously"
+          "tags": [],
+          "default": [
+            1
+          ],
+          "description": "samples accumulated per anariRenderFrame() call"
         },
         {
-          "name": "denoise",
+          "name": "runAsync",
           "types": [
             "ANARI_BOOL"
           ],
           "tags": [],
           "default": [
-            false
+            true
           ],
-          "description": "denoise the rendered image (requires OptiX or OIDN at build time)"
+          "description": "run anariRenderFrame() asynchronously"
         }
       ]
     }

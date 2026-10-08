@@ -6,16 +6,20 @@
 #include "anari/anari_cpp.hpp"
 // cycles
 #include "scene/background.h"
+#include "scene/film.h"
 #include "scene/integrator.h"
 #include "scene/shader_nodes.h"
 
-#include <util/path.h>
-#include <app/cycles_xml_bin.h>
+#include "array/Array1D.h"
+#include "array/Array2D.h"
+#include "array/Array3D.h"
+#include "array/ObjectArray.h"
+#include "frame/Frame.h"
 
-#include "Array.h"
-#include "Frame.h"
+#include "frame/FrameOutputDriver.h"
 
-#include "FrameOutputDriver.h"
+// std
+#include <cstring>
 
 namespace anari_cycles {
 
@@ -23,18 +27,18 @@ namespace anari_cycles {
 // Helper functions ///////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-//template <typename HANDLE_T, typename OBJECT_T>
-//inline HANDLE_T getHandleForAPI(OBJECT_T *object)
-//{
-//  return (HANDLE_T)object;
-//}
-//
-//template <typename OBJECT_T, typename HANDLE_T, typename... Args>
-//inline HANDLE_T createObjectForAPI(CyclesGlobalState *s, Args &&...args)
-//{
-//  return getHandleForAPI<HANDLE_T>(
-//      new OBJECT_T(s, std::forward<Args>(args)...));
-//}
+template <typename HANDLE_T, typename OBJECT_T>
+inline HANDLE_T getHandleForAPI(OBJECT_T *object)
+{
+  return (HANDLE_T)object;
+}
+
+template <typename OBJECT_T, typename HANDLE_T, typename... Args>
+inline HANDLE_T createObjectForAPI(CyclesGlobalState *s, Args &&...args)
+{
+  return getHandleForAPI<HANDLE_T>(
+      new OBJECT_T(s, std::forward<Args>(args)...));
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // CyclesDevice definitions ///////////////////////////////////////////////////
@@ -65,15 +69,10 @@ ANARIArray1D CyclesDevice::newArray1D(const void *appMemory,
   md.elementType = type;
   md.numItems = numItems;
 
-  //if (anari::isObject(type))
-  //  return createObjectForAPI<ObjectArray, ANARIArray1D>(deviceState(), md);
-  //else
-  //  return createObjectForAPI<Array1D, ANARIArray1D>(deviceState(), md);
-
   if (anari::isObject(type))
-      return (ANARIArray1D) new ObjectArray(deviceState(), md);
+    return createObjectForAPI<ObjectArray, ANARIArray1D>(deviceState(), md);
   else
-      return (ANARIArray1D) new Array1D(deviceState(), md);
+    return createObjectForAPI<Array1D, ANARIArray1D>(deviceState(), md);
 }
 
 ANARIArray2D CyclesDevice::newArray2D(const void *appMemory,
@@ -93,8 +92,7 @@ ANARIArray2D CyclesDevice::newArray2D(const void *appMemory,
   md.numItems1 = numItems1;
   md.numItems2 = numItems2;
 
-  //return createObjectForAPI<Array2D, ANARIArray2D>(deviceState(), md);
-  return (ANARIArray2D) new Array2D(deviceState(), md);
+  return createObjectForAPI<Array2D, ANARIArray2D>(deviceState(), md);
 }
 
 ANARIArray3D CyclesDevice::newArray3D(const void *appMemory,
@@ -116,107 +114,98 @@ ANARIArray3D CyclesDevice::newArray3D(const void *appMemory,
   md.numItems2 = numItems2;
   md.numItems3 = numItems3;
 
-  //return createObjectForAPI<Array3D, ANARIArray3D>(deviceState(), md);
-  return (ANARIArray3D) new Array3D(deviceState(), md);
+  return createObjectForAPI<Array3D, ANARIArray3D>(deviceState(), md);
 }
 
 ANARICamera CyclesDevice::newCamera(const char *subtype)
 {
   initDevice();
-  //return getHandleForAPI<ANARICamera>(
-  //    Camera::createInstance(subtype, deviceState()));
-  return (ANARICamera)Camera::createInstance(subtype, deviceState());
+  return getHandleForAPI<ANARICamera>(
+      Camera::createInstance(subtype, deviceState()));
 }
 
 ANARIFrame CyclesDevice::newFrame()
 {
   initDevice();
-  //return createObjectForAPI<Frame, ANARIFrame>(deviceState());
-  return (ANARIFrame) new Frame(deviceState());
+  return createObjectForAPI<Frame, ANARIFrame>(deviceState());
 }
 
 ANARIGeometry CyclesDevice::newGeometry(const char *subtype)
 {
   initDevice();
-  //return getHandleForAPI<ANARIGeometry>(
-  //    Geometry::createInstance(subtype, deviceState()));
-  return (ANARIGeometry)Geometry::createInstance(subtype, deviceState());
+  return getHandleForAPI<ANARIGeometry>(
+      Geometry::createInstance(subtype, deviceState()));
 }
 
 ANARIGroup CyclesDevice::newGroup()
 {
   initDevice();
-  //return createObjectForAPI<Group, ANARIGroup>(deviceState());
-  return (ANARIGroup) new Group(deviceState());
+  return createObjectForAPI<Group, ANARIGroup>(deviceState());
 }
 
-ANARIInstance CyclesDevice::newInstance(const char * /*subtype*/)
+ANARIInstance CyclesDevice::newInstance(const char *subtype)
 {
   initDevice();
-  //return createObjectForAPI<Instance, ANARIInstance>(deviceState());
-  return (ANARIInstance) new Instance(deviceState());
+  return getHandleForAPI<ANARIInstance>(
+      Instance::createInstance(subtype, deviceState()));
 }
 
 ANARILight CyclesDevice::newLight(const char *subtype)
 {
   initDevice();
-  //return getHandleForAPI<ANARILight>(
-  //    Light::createInstance(subtype, deviceState()));
-  return (ANARILight)Light::createInstance(subtype, deviceState());
+  // Light constructors create scene nodes -- guard against the render thread.
+  CyclesGlobalState::SceneLock sceneLock(*deviceState());
+  return getHandleForAPI<ANARILight>(
+      Light::createInstance(subtype, deviceState()));
 }
 
 ANARIMaterial CyclesDevice::newMaterial(const char *subtype)
 {
   initDevice();
-  //return getHandleForAPI<ANARIMaterial>(
-  //    Material::createInstance(subtype, deviceState()));
-  return (ANARIMaterial)Material::createInstance(subtype, deviceState());
+  return getHandleForAPI<ANARIMaterial>(
+      Material::createInstance(subtype, deviceState()));
 }
 
 ANARIRenderer CyclesDevice::newRenderer(const char *subtype)
 {
   initDevice();
-  //return createObjectForAPI<Renderer, ANARIRenderer>(deviceState());
-  return (ANARIRenderer)Renderer::createInstance(subtype, deviceState());
+  return createObjectForAPI<Renderer, ANARIRenderer>(deviceState());
 }
 
 ANARISampler CyclesDevice::newSampler(const char *subtype)
 {
   initDevice();
-  //return getHandleForAPI<ANARISampler>(
-  //    Sampler::createInstance(subtype, deviceState()));
-  return (ANARISampler)Sampler::createInstance(subtype, deviceState());
+  return getHandleForAPI<ANARISampler>(
+      Sampler::createInstance(subtype, deviceState()));
 }
 
 ANARISpatialField CyclesDevice::newSpatialField(const char *subtype)
 {
   initDevice();
-  //return getHandleForAPI<ANARISpatialField>(
-  //    SpatialField::createInstance(subtype, deviceState()));
-  return (ANARISpatialField)SpatialField::createInstance(
-      subtype, deviceState());
+  return getHandleForAPI<ANARISpatialField>(
+      SpatialField::createInstance(subtype, deviceState()));
 }
 
 ANARISurface CyclesDevice::newSurface()
 {
   initDevice();
-  //return createObjectForAPI<Surface, ANARISurface>(deviceState());
-  return (ANARISurface) new Surface(deviceState());
+  return createObjectForAPI<Surface, ANARISurface>(deviceState());
 }
 
 ANARIVolume CyclesDevice::newVolume(const char *subtype)
 {
   initDevice();
-  //return getHandleForAPI<ANARIVolume>(
-  //    Volume::createInstance(subtype, deviceState()));
-  return (ANARIVolume)Volume::createInstance(subtype, deviceState());
+  // Volume constructors create scene shaders -- guard against the render
+  // thread.
+  CyclesGlobalState::SceneLock sceneLock(*deviceState());
+  return getHandleForAPI<ANARIVolume>(
+      Volume::createInstance(subtype, deviceState()));
 }
 
 ANARIWorld CyclesDevice::newWorld()
 {
   initDevice();
-  //return createObjectForAPI<World, ANARIWorld>(deviceState());
-  return (ANARIWorld) new World(deviceState());
+  return createObjectForAPI<World, ANARIWorld>(deviceState());
 }
 
 // Query functions ////////////////////////////////////////////////////////////
@@ -262,6 +251,11 @@ int CyclesDevice::getProperty(ANARIObject object,
   if (mask == ANARI_WAIT) {
     auto lock = scopeLockObject();
     deviceState()->waitOnCurrentFrame();
+    // helium::BaseDevice::getProperty() flushes the commit buffer on
+    // ANARI_WAIT, which mutates the Cycles scene. Do that flush here under
+    // the scene lock instead (the base class flush is then a no-op).
+    CyclesGlobalState::SceneLock sceneLock(*deviceState());
+    deviceState()->commitBuffer.flush();
   }
 
   return helium::BaseDevice::getProperty(object, name, type, mem, size, mask);
@@ -286,9 +280,26 @@ CyclesDevice::~CyclesDevice()
 {
   if (m_initialized) {
     auto &state = *deviceState();
+    // Stop the completion-callback thread first, while the device, session
+    // and scene are all still fully alive: a queued callback must never be
+    // invoked with (or release its frame against) a half-destructed device.
+    state.output_driver->shutdownCallbackThread();
     state.session->cancel(true);
     state.session->wait();
     state.commitBuffer.clear();
+
+    // Destroy the session (and with it the scene) now, not when the device
+    // state dies: helium::BaseDevice::~BaseDevice() runs its leaked-object
+    // check after this destructor but before the state is destroyed, and the
+    // Cycles ImageManager frees zero-user image slots only lazily (on the
+    // next device_update, or at scene teardown). Slots surviving to this
+    // point still own their SamplerImageLoader, which pins its source arrays
+    // -- those would be falsely reported as leaked. The render thread is
+    // already stopped, so no lock is needed.
+    state.retiredGeometry.clear(); // owned by the scene, freed by ~Scene
+    state.output_driver = nullptr; // owned by the session
+    state.scene = nullptr;
+    state.session.reset();
   }
 
   reportMessage(ANARI_SEVERITY_DEBUG, "destroyed cycles device (%p)", this);
@@ -307,8 +318,195 @@ int CyclesDevice::deviceGetProperty(const char *name,
   } else if (prop == "cycles" && type == ANARI_BOOL) {
     helium::writeToVoidP(mem, true);
     return 1;
+  } else if (prop == "computeDevices" && type == ANARI_STRING_LIST) {
+    // CYCLES_DEVICE_SELECTION: backends usable as 'computeDevice' values,
+    // in auto-selection preference order (cached -- device enumeration is
+    // expensive and the set cannot change over the process lifetime).
+    if (m_availableBackendPtrs.empty()) {
+      static const std::pair<ccl::DeviceType, const char *> backends[] = {
+          {ccl::DEVICE_OPTIX, "optix"},
+          {ccl::DEVICE_CUDA, "cuda"},
+          {ccl::DEVICE_HIP, "hip"},
+          {ccl::DEVICE_METAL, "metal"},
+          {ccl::DEVICE_ONEAPI, "oneapi"},
+          {ccl::DEVICE_CPU, "cpu"},
+      };
+      auto devices = ccl::Device::available_devices();
+      for (const auto &b : backends) {
+        for (const ccl::DeviceInfo &info : devices) {
+          if (info.type == b.first) {
+            m_availableBackends.emplace_back(b.second);
+            break;
+          }
+        }
+      }
+      for (const std::string &s : m_availableBackends)
+        m_availableBackendPtrs.push_back(s.c_str());
+      m_availableBackendPtrs.push_back(nullptr);
+    }
+    helium::writeToVoidP(mem, m_availableBackendPtrs.data());
+    return 1;
+  } else if (prop == "computeDevice.size" && type == ANARI_UINT64) {
+    initDevice();
+    helium::writeToVoidP(mem, uint64_t(m_appliedComputeDevice.size() + 1));
+    return 1;
+  } else if (prop == "computeDevice" && type == ANARI_STRING) {
+    // The backend actually in use -- forces session creation so the reported
+    // value is final (mirrors what any object-creating call would do anyway).
+    initDevice();
+    if (size == 0)
+      return 0;
+    std::memset(mem, 0, size);
+    std::memcpy(mem,
+        m_appliedComputeDevice.data(),
+        std::min(uint64_t(m_appliedComputeDevice.size()), size - 1));
+    return 1;
   }
   return 0;
+}
+
+int CyclesDevice::frameReady(ANARIFrame f, ANARIWaitMask m)
+{
+  // Deliberately bypasses helium::BaseDevice::frameReady(), which holds the
+  // frame's per-object mutex for the duration of the call. With
+  // KHR_FRAME_COMPLETION_CALLBACK, frameReady(ANARI_WAIT) must block until
+  // the frame's completion callback has returned, and the spec explicitly
+  // permits the callback to make ANARI calls (including on this very frame)
+  // -- those calls acquire the same per-object mutex, so holding it while
+  // blocked here would deadlock them. Frame::frameReady() only touches the
+  // FrameOutputDriver, which has its own internal synchronization.
+  return helium::referenceFromHandle<helium::BaseFrame>(f).frameReady(m);
+}
+
+void CyclesDevice::deviceCommitParameters()
+{
+  helium::BaseDevice::deviceCommitParameters();
+
+  // CYCLES_DEVICE_SELECTION: the parameters themselves are read lazily in
+  // initDevice() (selectComputeDevice()), so committing them before first use
+  // needs no work here -- but changing them once the Cycles session exists
+  // cannot take effect anymore, which deserves a warning. Compare against the
+  // values seen at init (not the applied backend) so re-commits after a
+  // fallback (e.g. 'cuda' requested, 'cpu' applied) stay quiet.
+  if (m_initialized) {
+    auto requested = getParamString("computeDevice", "auto");
+    const int requestedIndex = getParam<int>("computeDeviceIndex", 0);
+    if (requested != m_requestedComputeDevice
+        || requestedIndex != m_requestedComputeDeviceIndex) {
+      reportMessage(ANARI_SEVERITY_WARNING,
+          "'computeDevice'/'computeDeviceIndex' ('%s'/%d) changed after the"
+          " Cycles session was created -- ignored, still rendering on '%s'"
+          " (set them before first use of the device)",
+          requested.c_str(),
+          requestedIndex,
+          m_appliedComputeDevice.c_str());
+    }
+  }
+}
+
+ccl::DeviceInfo CyclesDevice::selectComputeDevice()
+{
+  auto requested = getParamString("computeDevice", "auto");
+  const int requestedIndex = getParam<int>("computeDeviceIndex", 0);
+  m_requestedComputeDevice = requested;
+  m_requestedComputeDeviceIndex = requestedIndex;
+
+  // Env override for containers/CI -- takes precedence over the parameter.
+  if (getenv("ANARI_CYCLES_FORCE_CPU")) {
+    if (requested != "auto" && requested != "cpu") {
+      reportMessage(ANARI_SEVERITY_WARNING,
+          "ANARI_CYCLES_FORCE_CPU overrides 'computeDevice' = '%s'",
+          requested.c_str());
+    }
+    requested = "cpu";
+  }
+
+  static const std::pair<const char *, ccl::DeviceType> backendTable[] = {
+      {"cpu", ccl::DEVICE_CPU},
+      {"cuda", ccl::DEVICE_CUDA},
+      {"optix", ccl::DEVICE_OPTIX},
+      {"hip", ccl::DEVICE_HIP},
+      {"metal", ccl::DEVICE_METAL},
+      {"oneapi", ccl::DEVICE_ONEAPI},
+  };
+
+  ccl::DeviceType requestedType = ccl::DEVICE_NONE; // NONE <=> auto
+  if (requested != "auto") {
+    for (const auto &b : backendTable) {
+      if (requested == b.first) {
+        requestedType = b.second;
+        break;
+      }
+    }
+    if (requestedType == ccl::DEVICE_NONE) {
+      reportMessage(ANARI_SEVERITY_WARNING,
+          "unrecognized 'computeDevice' value '%s' -- using auto selection"
+          " (valid: auto/cpu/cuda/optix/hip/metal/oneapi)",
+          requested.c_str());
+    }
+  }
+
+  const auto devices = ccl::Device::available_devices();
+  for (const ccl::DeviceInfo &info : devices) {
+    reportMessage(ANARI_SEVERITY_INFO,
+        "Found Cycles Device: %-7s| %s",
+        ccl::Device::string_from_type(info.type).c_str(),
+        info.description.c_str());
+  }
+
+  // 'hip' also matches HIP-RT devices (a HIP variant Cycles enumerates with
+  // its own type when hardware ray tracing is available).
+  auto matchesType = [](const ccl::DeviceInfo &info, ccl::DeviceType t) {
+    return info.type == t
+        || (t == ccl::DEVICE_HIP && info.type == ccl::DEVICE_HIPRT);
+  };
+
+  auto candidatesOf = [&](ccl::DeviceType t) {
+    std::vector<ccl::DeviceInfo> result;
+    for (const ccl::DeviceInfo &info : devices) {
+      if (matchesType(info, t))
+        result.push_back(info);
+    }
+    return result;
+  };
+
+  ccl::DeviceType selectedType = requestedType;
+  if (selectedType != ccl::DEVICE_NONE && candidatesOf(selectedType).empty()) {
+    reportMessage(ANARI_SEVERITY_WARNING,
+        "no '%s' compute devices available -- using auto selection",
+        requested.c_str());
+    selectedType = ccl::DEVICE_NONE;
+  }
+
+  if (selectedType == ccl::DEVICE_NONE) { // auto: OptiX > CUDA > CPU
+    for (auto t : {ccl::DEVICE_OPTIX, ccl::DEVICE_CUDA}) {
+      if (!candidatesOf(t).empty()) {
+        selectedType = t;
+        break;
+      }
+    }
+    if (selectedType == ccl::DEVICE_NONE)
+      selectedType = ccl::DEVICE_CPU;
+  }
+
+  auto candidates = candidatesOf(selectedType);
+  int index = requestedIndex;
+  if (index < 0 || size_t(index) >= candidates.size()) {
+    reportMessage(ANARI_SEVERITY_WARNING,
+        "'computeDeviceIndex' %d out of range (%zu '%s' device(s) available)"
+        " -- using device 0",
+        requestedIndex,
+        candidates.size(),
+        ccl::Device::string_from_type(selectedType).c_str());
+    index = 0;
+  }
+
+  for (const auto &b : backendTable) {
+    if (b.second == selectedType)
+      m_appliedComputeDevice = b.first;
+  }
+
+  return candidates[index];
 }
 
 void CyclesDevice::initDevice()
@@ -318,50 +516,11 @@ void CyclesDevice::initDevice()
 
   reportMessage(ANARI_SEVERITY_DEBUG, "initializing cycles device (%p)", this);
 
-  auto& state = *deviceState();
+  ccl::DeviceInfo selectedDevice = selectComputeDevice();
 
-#if 0
-  auto *forceCPU = getenv("ANARI_CYCLES_FORCE_CPU");
+  auto &state = *deviceState();
 
-  auto devices = ccl::Device::available_devices();
-  ccl::DeviceInfo selectedDevice =
-      ccl::Device::available_devices(ccl::DEVICE_MASK_CPU).front();
-  for (ccl::DeviceInfo &info : devices) {
-    reportMessage(ANARI_SEVERITY_INFO,
-        "Found Cycles Device: %-7s| %s",
-        ccl::Device::string_from_type(info.type).c_str(),
-        info.description.c_str());
-    if (!forceCPU && info.type == ccl::DEVICE_OPTIX)
-      selectedDevice = info;
-    else if (!forceCPU && selectedDevice.type != ccl::DEVICE_OPTIX
-        && info.type == ccl::DEVICE_CUDA)
-      selectedDevice = info;
-  } 
   state.session_params.device = selectedDevice;
-#else
-    auto *useGPU = getenv("CYCLES_ANARI_USE_GPU");
-    //state.session_params.device.type = useGPU ? ccl::DEVICE_OPTIX : ccl::DEVICE_CPU;
-    ccl::DeviceType device_type = ccl::DEVICE_CPU;
-    if (useGPU) {
-        printf("useGPU: %s\n", useGPU);
-        /* find matching device */
-        device_type = ccl::Device::type_from_string(useGPU);
-    }
-
-    std::vector<ccl::DeviceInfo> devices = ccl::Device::available_devices((ccl::DeviceTypeMask)(1 << device_type));
-
-    bool device_available = false;
-    if (!devices.empty()) {
-        state.session_params.device = devices.front();
-        device_available = true;
-    }
-
-    /* handle invalid configurations */
-    if (state.session_params.device.type == ccl::DEVICE_NONE || !device_available) {
-        fprintf(stderr, "Unknown device: %s\n", useGPU);
-        exit(-1);
-    }
-#endif
   state.session_params.background = false;
   state.session_params.headless = false;
   state.session_params.use_auto_tile = false;
@@ -369,29 +528,42 @@ void CyclesDevice::initDevice()
   state.session_params.use_resolution_divider = false;
   state.session_params.samples = 1;
 
-  // TODO:MJ
-  //state.session_params.threads = 1;
-
-// #if defined(WITH_OPTIX) || defined(WITH_OPENIMAGEDENOISE)
-//   if (selectedDevice.type == ccl::DEVICE_OPTIX) {
-//     state.session_params.denoise_device = selectedDevice;
-//   } else {
-//     state.session_params.denoise_device =
-//         ccl::Device::available_devices(ccl::DEVICE_MASK_CPU).front();
-//   }
-// #endif
+#if defined(WITH_OPTIX) || defined(WITH_OPENIMAGEDENOISE)
+  if (selectedDevice.type == ccl::DEVICE_OPTIX) {
+    state.session_params.denoise_device = selectedDevice;
+  } else {
+    state.session_params.denoise_device =
+        ccl::Device::available_devices(ccl::DEVICE_MASK_CPU).front();
+  }
+#endif
 
   reportMessage(ANARI_SEVERITY_INFO,
       "Using Cycles Device '%s'",
       ccl::Device::string_from_type(state.session_params.device.type).c_str());
 
+#ifdef WITH_OSL
+  // CYCLES_MATERIAL_OSL: the shading system is global per Cycles session, so
+  // it is switched to OSL up front whenever the render device supports it
+  // (CPU and OptiX only). Cycles compiles regular node graphs through OSL
+  // just the same, so all other material subtypes keep working; on devices
+  // without OSL support, committing an 'osl' material warns and yields an
+  // invalid material (see OSLMaterial::finalize()).
+  if (selectedDevice.type == ccl::DEVICE_CPU
+      || selectedDevice.type == ccl::DEVICE_OPTIX) {
+    state.scene_params.shadingsystem = ccl::SHADINGSYSTEM_OSL;
+    state.session_params.shadingsystem = ccl::SHADINGSYSTEM_OSL;
+  }
+#endif
+
   state.session =
       std::make_unique<ccl::Session>(state.session_params, state.scene_params);
   state.scene = state.session->scene.get();
 
-  // We cannot use adaptive sampling based on ANARI's async execution model,
-  // me _must_ know that the next sample will get executed to trigger completion
-  // code signaling the frame is complete.
+  // Baseline integrator state before any renderer commits; the effective
+  // value comes from the renderer's 'adaptiveSampling' parameter
+  // (Renderer::pushSamplingState(), default on). Adaptive sampling
+  // interoperates with ANARI's per-frame accumulation model because Cycles
+  // still delivers the render tile even when all pixels converge early.
   state.scene->integrator->set_use_adaptive_sampling(false);
 
 #if defined(WITH_OPTIX) || defined(WITH_OPENIMAGEDENOISE)
@@ -400,8 +572,8 @@ void CyclesDevice::initDevice()
   } else {
     state.scene->integrator->set_denoiser_type(ccl::DENOISER_OPENIMAGEDENOISE);
   }
-  state.scene->integrator->set_use_denoise_pass_albedo(true);
-  state.scene->integrator->set_use_denoise_pass_normal(true);
+  state.scene->integrator->set_denoiser_passes(
+      ccl::DENOISER_PASS_ALBEDO | ccl::DENOISER_PASS_NORMAL);
   state.scene->integrator->set_denoise_use_gpu(false);
   state.scene->integrator->set_denoiser_prefilter(ccl::DENOISER_PREFILTER_FAST);
   state.scene->integrator->set_denoiser_quality(ccl::DENOISER_QUALITY_BALANCED);
@@ -428,86 +600,33 @@ void CyclesDevice::initDevice()
   pass_object_id->set_name(OIIO::ustring("object_id"));
   pass_object_id->set_type(ccl::PASS_OBJECT_ID);
 
+  // Value-AOV passes backing the 'primitiveId' and 'instanceId' frame
+  // channels. Cycles has no built-in passes for these, so every surface
+  // material graph carries OutputAOV nodes writing them (see
+  // Material::makeGraph()); the pass names here must match the AOV node
+  // names (Film::get_aov_offset() pairs them up by name).
+  ccl::Pass *pass_primitive_id = state.scene->create_node<ccl::Pass>();
+  pass_primitive_id->set_name(OIIO::ustring("primitiveId"));
+  pass_primitive_id->set_type(ccl::PASS_AOV_VALUE);
+
+  ccl::Pass *pass_instance_id = state.scene->create_node<ccl::Pass>();
+  pass_instance_id->set_name(OIIO::ustring("instanceId"));
+  pass_instance_id->set_type(ccl::PASS_AOV_VALUE);
+
+  // AOVs are written on every hit that still has PATH_RAY_TRANSPARENT_
+  // BACKGROUND set and PATH_RAY_SINGLE_PASS_DONE unset. With the Cycles
+  // default pass_alpha_threshold (0.5), a hit on a transparent surface
+  // (alphaMode 'mask'/'blend') does not set SINGLE_PASS_DONE, so the next
+  // surface would write the id AOVs *again* and the accumulated pass would
+  // hold the sum of two ids. Threshold 0 makes the very first hit final for
+  // all single-write passes, matching the first-hit semantics of the
+  // depth/objectId channels.
+  state.scene->film->set_pass_alpha_threshold(0.f);
+
   auto output_driver = std::make_unique<FrameOutputDriver>();
   state.output_driver = output_driver.get();
 
   state.session->set_output_driver(std::move(output_driver));
-
-  // set scene
-  std::string filepath_xml;
-  const char* env_xml = getenv("CYCLES_XML_PATH");
-  if (env_xml) {
-      //filepath_xml = std::string(env_xml);
-      filepath_xml = path_join(env_xml, "cycles_default_scene.xml");
-  }
-  else {
-      filepath_xml = path_join(path_get("anari"), "cycles_default_scene.xml");
-  }
-
-  xml_read_file(state.scene, filepath_xml.c_str());
-
-  //TODO:MJ
-  if (state.scene->default_background) {
-      for (ShaderNode* node : state.scene->default_background->graph->nodes) {
-          if (node->name == "bgColor" && node->type == BackgroundNode::get_node_type()) {
-              state.bg_color_node = (ccl::BackgroundNode*)node;
-          }
-          else 
-          if (node->name == "ambientIntensity" && node->type == BackgroundNode::get_node_type()) {
-              state.ambientIntensity = (ccl::BackgroundNode*)node;
-          }
-/*          else if (node->name == "backgroundImage") {
-              state.backgroundImage = (ImageTextureNode*)node;
-          } */         
-      }
-  }
-
-#if 0
-  else 
-  {
-    // setup background shader (divides out ambient and bg color)
-    {  
-      auto *shader = state.scene->default_background;
-      auto graph = std::make_unique<ccl::ShaderGraph>();
-      auto *mix = graph->create_node<ccl::MixClosureNode>();
-      auto *lightPath = graph->create_node<ccl::LightPathNode>();
-      auto *bg = graph->create_node<ccl::BackgroundNode>();
-      bg->name = "background_shader";
-      auto *ambient = graph->create_node<ccl::BackgroundNode>();
-      ambient->name = "ambient_shader";
-
-      //state.background = bg;
-      //state.ambient = ambient;
-
-      graph->connect(ambient->output("Background"), mix->input("Closure1"));
-      graph->connect(bg->output("Background"), mix->input("Closure2"));
-      graph->connect(lightPath->output("Is Camera Ray"), mix->input("Fac"));
-      graph->connect(mix->output("Closure"), graph->output()->input("Surface"));
-
-      shader->set_graph(std::move(graph));
-
-      state.scene->background->set_shader(state.scene->default_background);
-      state.scene->background->set_use_shader(true);
-    }
-
-    // setup global light shader
-    {
-      auto *shader = state.scene->default_light;
-      auto graph = std::make_unique<ccl::ShaderGraph>();
-
-      auto *emission = graph->create_node<ccl::EmissionNode>();
-      emission->set_color(make_float3(1.f, 1.f, 1.f));
-      emission->set_strength(4.0f); // to match VisRTX
-
-      graph->connect(
-          emission->output("Emission"), graph->output()->input("Surface"));
-
-      shader->name = "default_anari_light";
-      shader->set_graph(std::move(graph));
-      shader->reference();
-    }
-  }
-#endif
 
   m_initialized = true;
 }

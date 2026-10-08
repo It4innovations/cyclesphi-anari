@@ -84,6 +84,16 @@ inline float degrees(float radians)
   return radians * 180.f / float(M_PI);
 }
 
+inline math::mat4 cyclesToMat4(const ccl::Transform &t)
+{
+  math::mat4 m;
+  m[0] = math::float4(t.x.x, t.y.x, t.z.x, 0.f);
+  m[1] = math::float4(t.x.y, t.y.y, t.z.y, 0.f);
+  m[2] = math::float4(t.x.z, t.y.z, t.z.z, 0.f);
+  m[3] = math::float4(t.x.w, t.y.w, t.z.w, 1.f);
+  return m;
+}
+
 inline ccl::Transform mat4ToCycles(const math::mat4 &m)
 {
   ccl::Transform xfm;
@@ -101,23 +111,6 @@ inline ccl::Transform mat4ToCycles(const math::mat4 &m)
   xfm.z.w = m[3].z;
   return xfm;
 }
-
-// Helper types/functions /////////////////////////////////////////////////////
-
-template <int T>
-struct convert_toFloat4
-{
-    using base_type = typename anari::ANARITypeProperties<T>::base_type;
-    const int nc = anari::ANARITypeProperties<T>::components;
-    anari_vec::float4 operator()(const void* src, size_t offset)
-    {
-        anari_vec::float4 retval = { 0.f, 0.f, 0.f, 1.f };
-        if constexpr (!anari::isObject(T) && T != ANARI_UNKNOWN)
-            anari::ANARITypeProperties<T>::toFloat4(
-                &retval[0], (const base_type*)src + nc * offset);
-        return retval;
-    }
-};
 
 } // namespace anari_cycles
 
