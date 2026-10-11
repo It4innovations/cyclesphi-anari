@@ -48,8 +48,10 @@ struct Geometry : public Object
   virtual bool bakeDeformationMotion(
       ccl::Geometry *node, const helium::box1 &shutter) const;
 
-  // The five general ANARI attribute channels: color, attribute0..attribute3.
-  static constexpr int NUM_ATTRIBUTE_CHANNELS = 5;
+  // The five general ANARI attribute channels: color, attribute0..attribute3,
+  // and four more of CYCLES_GEOMETRY_ATTRIBUTES: attribute4..attribute7 (for
+  // 'cyclesXml' materials, whose graphs read more attributes than ANARI has).
+  static constexpr int NUM_ATTRIBUTE_CHANNELS = 9;
 
  protected:
   // Reads the attribute-channel parameters shared by every subtype: uniform

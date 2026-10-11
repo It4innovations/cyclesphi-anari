@@ -339,6 +339,9 @@ void Frame::renderFrame()
       Light *bgLight = m_world->backgroundLight();
       if (bgLight)
         bgLight->setCameraBackgroundColor(m_renderer->backgroundColor());
+      // CYCLES_SHADER_XML: the world shader of 'backgroundSource' is
+      // importance sampled through a background light of the renderer.
+      m_renderer->syncBackgroundLight(bgLight != nullptr);
 
       // Background alpha/image (KHR_RENDERER_BACKGROUND_{COLOR,IMAGE}): when
       // camera rays see the renderer background (no camera-visible

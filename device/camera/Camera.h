@@ -54,9 +54,23 @@ struct Camera : public Object {
   // vector (0 for mono or native-stereo subtypes).
   float stereoEyeOffset() const;
 
+  // Set the viewplane of the Cycles camera to the part of the full one
+  // (left, right, bottom, top) which 'imageRegion' selects. The viewplane is
+  // set through the socket setters: they tag the camera as modified, so that
+  // a change of the viewplane alone (zoom, aspect, image region) reaches the
+  // next frame.
+  void setViewplane(float left, float right, float bottom, float top);
+
   anari_vec::float3 m_pos;
   anari_vec::float3 m_dir;
   anari_vec::float3 m_up;
+
+  // 'imageRegion': the part of the image plane the frame shows, as lower
+  // left and upper right corner; (0,0)-(1,1) is all of it.
+  float m_imageRegion[4]{0.f, 0.f, 1.f, 1.f};
+  // 'near'/'far' clip distances; negative when not set (Cycles defaults).
+  float m_near{-1.f};
+  float m_far{-1.f};
 
   // KHR_CAMERA_DEPTH_OF_FIELD
   float m_apertureRadius{0.f};

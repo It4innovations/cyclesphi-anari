@@ -23,8 +23,58 @@
 #include <algorithm>
 #include <cctype>
 #include <cstring>
+#ifdef __APPLE__
+#include "util/profiling.h"
+#include "util/stats.h"
+#include <chrono>
+#include <mutex>
+#include <set>
+#include <thread>
+#endif
 
 namespace anari_cycles {
+
+#ifdef __APPLE__
+// Cycles compiles its Metal kernels from source at runtime, in the background:
+// a kernel which does not compile only shows up as the error of the first
+// render, when the scene already lives on the Metal device and the session can
+// no longer change to another one. Load the kernels up front with a device of
+// its own, so the caller can fall back to the CPU. The compiled kernels are
+// cached by Cycles (in memory and in its kernel cache directory), the session
+// which is created afterwards does not compile them again.
+static bool loadMetalKernels(const ccl::DeviceInfo &info, std::string &error)
+{
+  // Once per process and GPU: every ANARI device creates a session of its own.
+  static std::mutex mutex;
+  static std::set<std::string> loaded;
+  std::lock_guard<std::mutex> lock(mutex);
+  if (loaded.count(info.id) > 0)
+    return true;
+
+  ccl::Stats stats;
+  ccl::Profiler profiler;
+  auto device = ccl::Device::create(info, stats, profiler, true);
+  if (!device) {
+    error = "the Metal device could not be created";
+    return false;
+  }
+  if (!device->have_error() && !device->load_kernels(0)) {
+    error = device->have_error() ? std::string(device->error_message()) :
+                                   "the GPU is not supported";
+    return false;
+  }
+  // MetalDevice::is_ready() also returns true when the device has an error.
+  ccl::string status;
+  while (!device->have_error() && !device->is_ready(status))
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  if (device->have_error()) {
+    error = device->error_message();
+    return false;
+  }
+  loaded.insert(info.id);
+  return true;
+}
+#endif
 
 ///////////////////////////////////////////////////////////////////////////////
 // Helper functions ///////////////////////////////////////////////////////////
@@ -492,8 +542,9 @@ ccl::DeviceInfo CyclesDevice::selectComputeDevice()
     selectedType = ccl::DEVICE_NONE;
   }
 
-  if (selectedType == ccl::DEVICE_NONE) { // auto: OptiX > CUDA > CPU
-    for (auto t : {ccl::DEVICE_OPTIX, ccl::DEVICE_CUDA}) {
+  // auto: OptiX > CUDA > Metal > CPU (Cycles only lists Metal devices on macOS)
+  if (selectedType == ccl::DEVICE_NONE) {
+    for (auto t : {ccl::DEVICE_OPTIX, ccl::DEVICE_CUDA, ccl::DEVICE_METAL}) {
       if (!candidatesOf(t).empty()) {
         selectedType = t;
         break;
@@ -514,6 +565,24 @@ ccl::DeviceInfo CyclesDevice::selectComputeDevice()
         ccl::Device::string_from_type(selectedType).c_str());
     index = 0;
   }
+
+#ifdef __APPLE__
+  if (selectedType == ccl::DEVICE_METAL) {
+    reportMessage(ANARI_SEVERITY_INFO,
+        "loading the Metal render kernels of Cycles"
+        " (may take a few minutes the first time)");
+    std::string error;
+    if (!loadMetalKernels(candidates[index], error)) {
+      reportMessage(ANARI_SEVERITY_ERROR,
+          "the Metal render kernels of Cycles could not be loaded"
+          " -- rendering on the CPU instead:\n%s",
+          error.c_str());
+      selectedType = ccl::DEVICE_CPU;
+      candidates = candidatesOf(selectedType);
+      index = 0;
+    }
+  }
+#endif
 
   for (const auto &b : backendTable) {
     if (b.second == selectedType)
@@ -654,6 +723,18 @@ void CyclesDevice::initDevice()
   state.output_driver = output_driver.get();
 
   state.session->set_output_driver(std::move(output_driver));
+
+  // A render which the session gives up with an error (for example when the
+  // kernels of a GPU device cannot be loaded) ends without a tile for the
+  // output driver. End the frame with that error then: otherwise everything
+  // which waits for the frame would block forever.
+  state.session->progress.set_update_callback([&state]() {
+    if (state.session && state.output_driver
+        && state.session->progress.get_error()) {
+      state.output_driver->renderFailed(
+          state.session->progress.get_error_message());
+    }
+  });
 
   m_initialized = true;
 }

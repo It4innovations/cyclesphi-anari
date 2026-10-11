@@ -5,6 +5,7 @@
 
 #include "array/Array1D.h"
 #include "Object.h"
+#include "XmlShaderGraph.h"
 // cycles
 #include "scene/light.h"
 #include "scene/shader.h"
@@ -38,6 +39,9 @@ struct Light : public Object
 
   // KHR_AREA_LIGHTS 'visible': whether camera rays see the light geometry.
   bool visibleToCamera() const;
+  // PATH_RAY_VISIBILITY_* bits of the rays the light contributes to
+  // ('visibility.diffuse', '.glossy', '.transmission', '.volumeScatter').
+  uint32_t rayVisibility() const;
 
   // CYCLES_LIGHT_LINKING: membership masks for the light's scene objects
   // (Object::light_set_membership / shadow_set_membership). ~0 ("member of
@@ -90,6 +94,16 @@ struct Light : public Object
       const math::float3 &rowY,
       const math::float3 &rowZ);
 
+  // CYCLES_SHADER_XML: make the graph of the 'source' parameter the shader
+  // of the light (it is only built again when the text or an image it uses
+  // changed). Returns false when there is no usable 'source'; the light then
+  // has its own emission shader, see restoreDefaultShader(). The strength of
+  // the light (color, intensity, ...) is applied on top in both cases.
+  // No-op for the background lights ('hdri', 'sky').
+  bool updateSourceShader();
+  // Put the unit-emission graph back after a 'source' graph.
+  void restoreDefaultShader();
+
   // The light color scaled by a photometric factor, in the form Cycles
   // expects for ccl::Light::strength.
   ccl::float3 scaledColor(float scale) const;
@@ -117,8 +131,17 @@ struct Light : public Object
   std::string m_appliedIES;
   math::float3 m_appliedRows[3]{};
 
+  // CYCLES_SHADER_XML
+  std::string m_source;
+  XmlShaderGraph m_sourceGraph;
+  bool m_shaderHasSource{false};
+
   anari_vec::float3 m_color;
   bool m_visible{true};
+  uint32_t m_rayVisibility{~0u};
+  // 'maxBounce' and 'castShadow', see commitParameters()
+  int m_maxBounce{1024};
+  bool m_castShadow{true};
   uint64_t m_lightSetMembership{~uint64_t(0)};
   uint64_t m_shadowSetMembership{~uint64_t(0)};
   std::string m_lightGroup;

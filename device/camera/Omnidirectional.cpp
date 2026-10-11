@@ -13,9 +13,7 @@ void Omnidirectional::commitParameters()
 {
   Camera::commitParameters();
   // KHR_CAMERA_OMNIDIRECTIONAL only defines "equirectangular"; anything else
-  // is unsupported, so warn and fall back to it. 'imageRegion' is not
-  // implemented by any camera subtype in this device yet, so it is
-  // (deliberately) not read here either.
+  // is unsupported, so warn and fall back to it.
   auto layout = getParamString("layout", "equirectangular");
   if (layout != "equirectangular") {
     reportMessage(ANARI_SEVERITY_WARNING,
@@ -34,10 +32,7 @@ void Omnidirectional::setCameraCurrent(int width, int height)
   // Panorama rays are generated from screen coordinates in [0,1]^2 (see
   // kernel/camera/camera.h camera_panorama_direction); reset the viewplane in
   // case another camera subtype left a perspective/ortho viewplane behind.
-  state.scene->camera->viewplane.left = 0.f;
-  state.scene->camera->viewplane.right = 1.f;
-  state.scene->camera->viewplane.bottom = 0.f;
-  state.scene->camera->viewplane.top = 1.f;
+  setViewplane(0.f, 1.f, 0.f, 1.f);
 
   // KHR_CAMERA_STEREO: use Cycles' native spherical stereo for the panorama
   // camera -- it rotates the per-eye offset with the view direction (correct

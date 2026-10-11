@@ -34,6 +34,10 @@ struct Material : public Object
 
  protected:
   virtual void makeGraph();
+  // Add the nodes backing the 'primitiveId'/'instanceId' frame channels to
+  // 'graph': every surface material graph needs them, also one that is not
+  // built by makeGraph(). Returns the 'primitiveId' attribute node.
+  static ccl::AttributeNode *addIdChannelNodes(ccl::ShaderGraph *graph);
   // cyclesphi: name of the XML shader template replacing the built-in graph
   // when XML templates are enabled (see XmlScene.h), nullptr for none.
   virtual const char *xmlTemplateName() const

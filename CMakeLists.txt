@@ -197,6 +197,15 @@ endif()
 # These are derived from the ANARI_CYCLES_USE_* options above, so keep them in
 # sync on reconfigure (FORCE); without it a pre-existing cache entry wins and
 # toggling the ANARI_CYCLES_USE_* option silently does nothing.
+if(APPLE)
+  # The Metal device of Cycles. Its kernels are compiled at runtime from the kernel
+  # sources, which are installed with the device (see device/CMakeLists.txt). Without
+  # it the ANARI device neither lists 'metal' in 'computeDevices' nor selects it for
+  # 'auto', and renders on the CPU.
+  option(ANARI_CYCLES_USE_METAL "Build the Metal device of Cycles" ON)
+  set(WITH_CYCLES_DEVICE_METAL ${ANARI_CYCLES_USE_METAL} CACHE BOOL "" FORCE)
+endif()
+
 set(WITH_CYCLES_DEVICE_CUDA      ${ANARI_CYCLES_USE_OPTIX} CACHE BOOL "" FORCE)
 set(WITH_CYCLES_DEVICE_OPTIX     ${ANARI_CYCLES_USE_OPTIX} CACHE BOOL "" FORCE)
 set(WITH_CYCLES_OPENIMAGEDENOISE ${ANARI_CYCLES_USE_OIDN}  CACHE BOOL "" FORCE)

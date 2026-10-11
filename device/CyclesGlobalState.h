@@ -17,6 +17,7 @@
 
 namespace ccl {
 class BackgroundNode;
+class Light;
 } // namespace ccl
 
 namespace anari_cycles {
@@ -58,6 +59,17 @@ struct CyclesGlobalState : public helium::BaseGlobalDeviceState
   // instead of building its own default background shader.
   ccl::BackgroundNode *xmlBgColor{nullptr};
   ccl::BackgroundNode *xmlAmbientIntensity{nullptr};
+
+  // Background shader of the renderers //
+
+  // The renderer whose background is in scene->default_background (compared
+  // only, never dereferenced): another renderer builds its own when it
+  // becomes current.
+  const void *defaultBackgroundOwner{nullptr};
+  // CYCLES_SHADER_XML 'backgroundSource': the background light which makes
+  // Cycles importance sample that world shader. Created on first use; put
+  // into and taken out of scene->objects by Renderer::syncBackgroundLight().
+  ccl::Light *backgroundSourceLight{nullptr};
 
   // Scene mutation guard //
 

@@ -20,10 +20,7 @@ void Perspective::setCameraCurrent(int width, int height)
 {
   Camera::setCameraCurrent(width, height);
   auto &state = *deviceState();
-  state.scene->camera->viewplane.left = -m_aspect;
-  state.scene->camera->viewplane.right = m_aspect;
-  state.scene->camera->viewplane.bottom = -1.0f;
-  state.scene->camera->viewplane.top = 1.0f;
+  setViewplane(-m_aspect, m_aspect, -1.f, 1.f);
   state.scene->camera->set_fov(m_fovy);
   // Keep the motion-pass FOV endpoints in sync (their Cycles defaults are
   // pi/4): fov != fov_pre would make the 'channel.motion' vectors project

@@ -65,6 +65,20 @@
      "description": "camera up direction"
     },
     {
+     "name": "imageRegion",
+     "types": [
+      "ANARI_FLOAT32_BOX2"
+     ],
+     "tags": [],
+     "default": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+     ],
+     "description": "region mapped to the frame"
+    },
+    {
      "name": "layout",
      "types": [
       "ANARI_STRING"

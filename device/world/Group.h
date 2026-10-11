@@ -27,13 +27,27 @@ struct Group : public Object
   // it applies to surfaces and volumes -- Cycles has no motion blur for
   // lights, which use 'xfm' (the shutter-start pose) only. 'instanceId' is
   // the ANARI Instance 'id' (KHR_FRAME_CHANNEL_INSTANCE_ID) of the instance
-  // being expanded; ~0u means "no id set". Returns 'true' when any surface
-  // baked active deformation motion steps (the caller then enables
-  // integrator motion blur).
+  // being expanded; ~0u means "no id set". 'instanceVisibility' is the ray
+  // visibility mask of that instance (CYCLES_INSTANCE_VISIBILITY,
+  // PATH_RAY_VISIBILITY_* bits), combined with what the surfaces and lights
+  // have themselves. Returns 'true' when any surface baked active
+  // deformation motion steps (the caller then enables integrator motion
+  // blur).
+  // 'objectInfo', when given, is what the Object Info shader node returns
+  // for the objects of the instance.
+  struct ObjectInfo
+  {
+    bool hasRandom{false};
+    float random{0.f};
+    bool hasColor{false};
+    float color[4]{1.f, 1.f, 1.f, 1.f};
+  };
   bool addGroupToCurrentCyclesScene(const math::mat4 &xfm,
       const helium::box1 &shutter,
       const std::vector<ccl::Transform> *motion = nullptr,
-      uint32_t instanceId = ~0u) const;
+      uint32_t instanceId = ~0u,
+      uint32_t instanceVisibility = ~0u,
+      const ObjectInfo *objectInfo = nullptr) const;
 
   // 'true' when any committed surface's geometry carries deformation motion
   // keys -- i.e. its baked Cycles node depends on the camera shutter.

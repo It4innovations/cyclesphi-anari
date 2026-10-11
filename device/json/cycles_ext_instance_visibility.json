@@ -1,0 +1,306 @@
+{
+ "info": {
+  "name": "CYCLES_INSTANCE_VISIBILITY",
+  "type": "extension",
+  "comment": "Cycles vendor extension: per-instance ray visibility. The flags say which kinds of rays see the surfaces and volumes of the instance, and map onto the Cycles object visibility like the ray visibility of a Blender object; e.g. an emissive plane outside a window lights a room while it is hidden from camera and shadow rays. They are combined with the per-surface 'visible.*' flags of CYCLES_SURFACE_COMPOSITING (a ray type sees a surface when both allow it). For the lights of the instanced group the flags say which kinds of rays the light contributes to. An instance with all flags off creates no Cycles object.",
+  "dependencies": []
+ },
+ "objects": [
+  {
+   "type": "ANARI_INSTANCE",
+   "name": "transform",
+   "parameters": [
+    {
+     "name": "visibility.camera",
+     "types": [
+      "ANARI_BOOL"
+     ],
+     "tags": [],
+     "default": [
+      true
+     ],
+     "description": "the instance is visible to camera (primary) rays"
+    },
+    {
+     "name": "visibility.diffuse",
+     "types": [
+      "ANARI_BOOL"
+     ],
+     "tags": [],
+     "default": [
+      true
+     ],
+     "description": "the instance is visible to diffuse reflection rays"
+    },
+    {
+     "name": "visibility.glossy",
+     "types": [
+      "ANARI_BOOL"
+     ],
+     "tags": [],
+     "default": [
+      true
+     ],
+     "description": "the instance is visible to glossy/specular reflection rays"
+    },
+    {
+     "name": "visibility.transmission",
+     "types": [
+      "ANARI_BOOL"
+     ],
+     "tags": [],
+     "default": [
+      true
+     ],
+     "description": "the instance is visible to transmission (refraction) rays"
+    },
+    {
+     "name": "visibility.volumeScatter",
+     "types": [
+      "ANARI_BOOL"
+     ],
+     "tags": [],
+     "default": [
+      true
+     ],
+     "description": "the instance is visible to volume scattering rays"
+    },
+    {
+     "name": "visibility.shadow",
+     "types": [
+      "ANARI_BOOL"
+     ],
+     "tags": [],
+     "default": [
+      true
+     ],
+     "description": "the instance casts shadows (is visible to shadow rays)"
+    },
+    {
+     "name": "objectRandom",
+     "types": [
+      "ANARI_FLOAT32"
+     ],
+     "tags": [],
+     "description": "random number in [0, 1] of the instance, the 'Random' output of the Object Info shader node; unset: the Cycles default of 0. The uniform 'color' of the instance is the 'Color' and 'Alpha' output of that node"
+    }
+   ]
+  },
+  {
+   "type": "ANARI_INSTANCE",
+   "name": "motionTransform",
+   "parameters": [
+    {
+     "name": "visibility.camera",
+     "types": [
+      "ANARI_BOOL"
+     ],
+     "tags": [],
+     "default": [
+      true
+     ],
+     "description": "the instance is visible to camera (primary) rays"
+    },
+    {
+     "name": "visibility.diffuse",
+     "types": [
+      "ANARI_BOOL"
+     ],
+     "tags": [],
+     "default": [
+      true
+     ],
+     "description": "the instance is visible to diffuse reflection rays"
+    },
+    {
+     "name": "visibility.glossy",
+     "types": [
+      "ANARI_BOOL"
+     ],
+     "tags": [],
+     "default": [
+      true
+     ],
+     "description": "the instance is visible to glossy/specular reflection rays"
+    },
+    {
+     "name": "visibility.transmission",
+     "types": [
+      "ANARI_BOOL"
+     ],
+     "tags": [],
+     "default": [
+      true
+     ],
+     "description": "the instance is visible to transmission (refraction) rays"
+    },
+    {
+     "name": "visibility.volumeScatter",
+     "types": [
+      "ANARI_BOOL"
+     ],
+     "tags": [],
+     "default": [
+      true
+     ],
+     "description": "the instance is visible to volume scattering rays"
+    },
+    {
+     "name": "visibility.shadow",
+     "types": [
+      "ANARI_BOOL"
+     ],
+     "tags": [],
+     "default": [
+      true
+     ],
+     "description": "the instance casts shadows (is visible to shadow rays)"
+    }
+   ]
+  },
+  {
+   "type": "ANARI_INSTANCE",
+   "name": "motionScaleRotationTranslation",
+   "parameters": [
+    {
+     "name": "visibility.camera",
+     "types": [
+      "ANARI_BOOL"
+     ],
+     "tags": [],
+     "default": [
+      true
+     ],
+     "description": "the instance is visible to camera (primary) rays"
+    },
+    {
+     "name": "visibility.diffuse",
+     "types": [
+      "ANARI_BOOL"
+     ],
+     "tags": [],
+     "default": [
+      true
+     ],
+     "description": "the instance is visible to diffuse reflection rays"
+    },
+    {
+     "name": "visibility.glossy",
+     "types": [
+      "ANARI_BOOL"
+     ],
+     "tags": [],
+     "default": [
+      true
+     ],
+     "description": "the instance is visible to glossy/specular reflection rays"
+    },
+    {
+     "name": "visibility.transmission",
+     "types": [
+      "ANARI_BOOL"
+     ],
+     "tags": [],
+     "default": [
+      true
+     ],
+     "description": "the instance is visible to transmission (refraction) rays"
+    },
+    {
+     "name": "visibility.volumeScatter",
+     "types": [
+      "ANARI_BOOL"
+     ],
+     "tags": [],
+     "default": [
+      true
+     ],
+     "description": "the instance is visible to volume scattering rays"
+    },
+    {
+     "name": "visibility.shadow",
+     "types": [
+      "ANARI_BOOL"
+     ],
+     "tags": [],
+     "default": [
+      true
+     ],
+     "description": "the instance casts shadows (is visible to shadow rays)"
+    }
+   ]
+  },
+  {
+   "type": "ANARI_LIGHT",
+   "name": "point",
+   "parameters": [
+    {
+     "name": "visibility.diffuse",
+     "types": [
+      "ANARI_BOOL"
+     ],
+     "tags": [],
+     "default": [
+      true
+     ],
+     "description": "the light contributes to diffuse reflection rays. Like the ray visibility of a Blender light object; all light subtypes take the four 'visibility.*' flags, which are combined with the ones of the instance"
+    },
+    {
+     "name": "visibility.glossy",
+     "types": [
+      "ANARI_BOOL"
+     ],
+     "tags": [],
+     "default": [
+      true
+     ],
+     "description": "the light contributes to glossy rays: with false it lights diffuse surfaces but does not show up in reflections"
+    },
+    {
+     "name": "visibility.transmission",
+     "types": [
+      "ANARI_BOOL"
+     ],
+     "tags": [],
+     "default": [
+      true
+     ],
+     "description": "the light contributes to transmission rays"
+    },
+    {
+     "name": "visibility.volumeScatter",
+     "types": [
+      "ANARI_BOOL"
+     ],
+     "tags": [],
+     "default": [
+      true
+     ],
+     "description": "the light contributes to volume scattering rays"
+    },
+    {
+     "name": "maxBounce",
+     "types": [
+      "ANARI_INT32"
+     ],
+     "tags": [],
+     "default": [
+      1024
+     ],
+     "description": "up to which bounce of a path the light contributes, like 'Max Bounces' of a Blender light: with 0 it only lights what the camera sees directly. All light subtypes take it"
+    },
+    {
+     "name": "castShadow",
+     "types": [
+      "ANARI_BOOL"
+     ],
+     "tags": [],
+     "default": [
+      true
+     ],
+     "description": "the light casts shadows; all light subtypes take it"
+    }
+   ]
+  }
+ ]
+}

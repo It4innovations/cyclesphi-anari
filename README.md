@@ -129,6 +129,10 @@ definitions live in `device/json/cycles_ext_*.json`.
   visibility and catcher/holdout workflows are compositing features KHR does
   not cover.
 
+- **`CYCLES_INSTANCE_VISIBILITY`** — The same ray-visibility flags per
+  instance (`visibility.camera`, `.diffuse`, `.glossy`, `.transmission`,
+  `.volumeScatter`, `.shadow`), like the ray visibility of a Blender object.
+
 - **`CYCLES_GEOMETRY_SUBDIVISION`** — Catmull-Clark or linear subdivision on
   triangle/quad geometry with adaptive object-space dicing and edge creases,
   using Cycles' OpenSubdiv path. KHR geometry extensions describe only
@@ -165,6 +169,20 @@ definitions live in `device/json/cycles_ext_*.json`.
   bytecode, with shader inputs settable as ANARI parameters. Arbitrary
   programmable shading is far beyond any KHR material. Requires a build
   with `WITH_CYCLES_OSL=ON`; otherwise the material warns and is invalid.
+
+- **`CYCLES_MATERIAL_CYCLES_XML`** — A `cyclesXml` material subtype taking a
+  whole Cycles shader graph as XML text (`source`, one `<shader>` element in
+  the dialect of cyclesphi's XML reader). Images are passed as `image2D`
+  sampler parameters of any name; an image node whose `filename` equals such
+  a parameter name samples that array. The graph is parsed again only when
+  the text or an image it uses changed; a text that cannot be used reports
+  an error and renders a gray diffuse fallback.
+
+- **`CYCLES_SHADER_XML`** — The same XML shader graphs for lights (`source`
+  on directional, point, spot, quad and ring lights: the emission shader of
+  the light, scaled by the light's own strength) and for the world
+  (`backgroundSource` on the renderer: the importance sampled Cycles world
+  shader, in place of the `background` color and the ambient light).
 
 ### Volumes
 

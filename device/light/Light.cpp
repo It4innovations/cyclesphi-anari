@@ -14,6 +14,7 @@
 #include "array/Array2D.h"
 // cycles
 #include "kernel/svm/types.h"
+#include "kernel/types.h"
 #include "scene/background.h"
 #include "scene/camera.h"
 #include "scene/shader.h"
@@ -23,6 +24,7 @@
 #include "util/transform.h"
 #include "util/types_float3.h"
 // std
+#include <algorithm>
 #include <charconv>
 #include <cmath>
 #include <cstdio>
@@ -34,7 +36,8 @@ namespace anari_cycles {
 Light::Light(CyclesGlobalState *s, ccl::Light *light)
     : Object(ANARI_LIGHT, s),
       m_cyclesLight(light),
-      m_intensityDistributionArray(this)
+      m_intensityDistributionArray(this),
+      m_sourceGraph(this, "light 'source'")
 {}
 
 Light::~Light()
@@ -229,11 +232,62 @@ Light::IntensityDistribution Light::getIntensityDistributionParam()
   return dist;
 }
 
+bool Light::updateSourceShader()
+{
+  if (!m_cyclesLight || !m_cyclesShader
+      || m_cyclesLight->get_light_type() == ccl::LIGHT_BACKGROUND)
+    return false;
+
+  if (m_source.empty()) {
+    m_sourceGraph.clear();
+    return false;
+  }
+  if (!m_sourceGraph.changed(m_source))
+    return m_sourceGraph.valid();
+
+  auto settings = std::make_unique<ccl::Shader>();
+  auto graph = m_sourceGraph.build(
+      m_source, *settings, true, "the light keeps its default shader");
+  if (!graph)
+    return false;
+
+  reportMessage(ANARI_SEVERITY_DEBUG,
+      "light: built shader graph (%d nodes, %d image names)",
+      int(graph->nodes.size()),
+      int(m_sourceGraph.numImages()));
+
+  XmlShaderGraph::applySettings(*m_cyclesShader, *settings);
+  m_cyclesShader->set_graph(std::move(graph));
+  m_cyclesShader->tag_update(deviceState()->scene);
+  m_shaderHasSource = true;
+  // an intensityDistribution graph is gone now
+  m_shaderHasDistribution = false;
+  m_appliedIES.clear();
+  return true;
+}
+
+void Light::restoreDefaultShader()
+{
+  XmlShaderGraph::applySettings(*m_cyclesShader, ccl::Shader());
+  m_cyclesShader->set_graph(makeUnitEmissionGraph());
+  m_cyclesShader->tag_update(deviceState()->scene);
+  m_shaderHasSource = false;
+  m_shaderHasDistribution = false;
+  m_appliedIES.clear();
+}
+
 void Light::updateEmissionShaderDistribution(const IntensityDistribution &dist,
     const math::float3 &rowX,
     const math::float3 &rowY,
     const math::float3 &rowZ)
 {
+  // CYCLES_SHADER_XML: a 'source' graph is the whole shader of the light, an
+  // intensityDistribution is not applied on top of it.
+  if (updateSourceShader())
+    return;
+  if (m_shaderHasSource)
+    restoreDefaultShader();
+
   if (!dist.present()) {
     // Keep the constructor-built unit-emission graph untouched (renders
     // without the parameter must be unchanged); only rebuild to drop a
@@ -348,8 +402,30 @@ math::float3 Light::getNormalizedDirection(
 void Light::commitParameters()
 {
   m_color = getParam<anari_vec::float3>("color", {1.f, 1.f, 1.f});
+  // CYCLES_SHADER_XML: the shader graph of the light as XML text
+  m_source = getParamString("source", "");
   // KHR_AREA_LIGHTS: light geometry is visible to camera rays by default.
   m_visible = getParam<bool>("visible", true);
+  // Which kinds of rays the light contributes to, like the ray visibility of
+  // a Blender light object: a light hidden from glossy rays lights diffuse
+  // surfaces but does not show up in reflections. Combined with the flags of
+  // the instance (CYCLES_INSTANCE_VISIBILITY).
+  m_rayVisibility = ~0u;
+  if (!getParam<bool>("visibility.diffuse", true))
+    m_rayVisibility &= ~uint32_t(ccl::PATH_RAY_VISIBILITY_DIFFUSE);
+  if (!getParam<bool>("visibility.glossy", true))
+    m_rayVisibility &= ~uint32_t(ccl::PATH_RAY_VISIBILITY_GLOSSY);
+  if (!getParam<bool>("visibility.transmission", true))
+    m_rayVisibility &= ~uint32_t(ccl::PATH_RAY_VISIBILITY_TRANSMIT);
+  if (!getParam<bool>("visibility.volumeScatter", true))
+    m_rayVisibility &= ~uint32_t(ccl::PATH_RAY_VISIBILITY_VOLUME_SCATTER);
+  // Like the settings of a Blender light: up to which bounce of a path the
+  // light contributes (0: only to what the camera sees directly), and whether
+  // it casts shadows. Applied before the subtypes tag the light in finalize().
+  m_maxBounce = std::max(getParam<int>("maxBounce", 1024), 0);
+  m_castShadow = getParam<bool>("castShadow", true);
+  m_cyclesLight->set_max_bounces(m_maxBounce);
+  m_cyclesLight->set_cast_shadow(m_castShadow);
   // CYCLES_LIGHT_LINKING: 'lightSet' restricts illumination to surfaces
   // whose 'receiverLightSet' names the same set; 'shadowSet' restricts
   // shadowing of this light to surfaces whose 'shadowBlockerSet' names the
@@ -402,6 +478,11 @@ bool Light::visibleToCamera() const
   return m_visible;
 }
 
+uint32_t Light::rayVisibility() const
+{
+  return m_rayVisibility;
+}
+
 ccl::Light *Light::secondaryCyclesLight() const
 {
   return nullptr;
@@ -419,6 +500,11 @@ void Light::setCameraBackgroundColor(const math::float3 &)
 
 void Light::finalize()
 {
+  // CYCLES_SHADER_XML (subtypes with an intensityDistribution have done this
+  // already, see updateEmissionShaderDistribution())
+  if (!updateSourceShader() && m_shaderHasSource)
+    restoreDefaultShader();
+
   // Light state is baked into per-instance ccl::Objects at world-rebuild
   // time (transform, camera visibility, secondary emitters), and neither
   // helium object arrays nor Object::markFinalized() propagate light

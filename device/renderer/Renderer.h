@@ -5,6 +5,7 @@
 
 #include "array/Array2D.h"
 #include "Object.h"
+#include "XmlShaderGraph.h"
 // std
 #include <memory>
 #include <string>
@@ -39,6 +40,18 @@ struct Renderer : public Object
   void commitParameters() override;
 
   void makeRendererCurrent();
+
+  // CYCLES_SHADER_XML: whether the world shader of 'backgroundSource' is the
+  // background (for lighting and for camera rays) instead of the
+  // 'background' color and the ambient light. Only current after
+  // makeRendererCurrent().
+  bool backgroundSourceActive() const;
+  // Keep a background light in the scene while the 'backgroundSource' shader
+  // is what the scene is lit by (no 'hdri'/'sky' light of the world took the
+  // background): Cycles only importance samples the world with one. Called by
+  // Frame::renderFrame() after makeRendererCurrent(), also because a world
+  // rebuild removes every object of the scene.
+  void syncBackgroundLight(bool worldHasEnvironmentLight);
 
   bool runAsync() const;
   int pixelSamples() const;
@@ -82,6 +95,16 @@ struct Renderer : public Object
     int ambientLight : 1;
     int denoise : 1;
   } m_needsUpdateStatus = {true, true, true, true};
+
+  // CYCLES_SHADER_XML
+  std::string m_backgroundSource;
+  XmlShaderGraph m_backgroundGraph;
+  bool m_backgroundSourceActive{false};
+  // CYCLES_SHADER_XML 'backgroundVisibility.*': which kinds of rays see the
+  // world shader of 'backgroundSource' (Cycles PATH_RAY_* bits, as the ray
+  // visibility of a Blender world); camera rays are decided by the alpha of
+  // 'background'.
+  uint32_t m_backgroundVisibility{~0u};
 
   math::float4 m_backgroundColor;
   helium::IntrusivePtr<Array2D> m_backgroundImageArray;
@@ -135,6 +158,7 @@ struct Renderer : public Object
     float mistFalloff{1.f};
   } m_sampling;
 
+  bool buildSourceBackgroundShader();
   void rebuildDefaultBackgroundShader();
   void updateXmlBackgroundShader();
   void rebakeBackgroundImage();

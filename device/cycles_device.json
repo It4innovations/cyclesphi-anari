@@ -75,10 +75,14 @@
       "cycles_ext_renderer_interactive_scaling",
       "cycles_ext_frame_channels",
       "cycles_ext_surface_compositing",
+      "cycles_ext_instance_visibility",
+      "cycles_ext_geometry_attributes",
       "cycles_ext_light_linking",
       "cycles_ext_lightgroups",
       "cycles_ext_geometry_subdivision",
       "cycles_ext_material_osl",
+      "cycles_ext_material_cycles_xml",
+      "cycles_ext_shader_xml",
       "cycles_ext_device_selection",
       "khr_spatial_field_structured_regular",
       "khr_spatial_field_structured_regular_cubic",
@@ -171,6 +175,22 @@
             0.0
           ],
           "description": "Cycles vendor addition: aperture blade rotation in radians"
+        },
+        {
+          "name": "near",
+          "types": [
+            "ANARI_FLOAT32"
+          ],
+          "tags": [],
+          "description": "Cycles vendor addition: near clip distance, measured along the ray"
+        },
+        {
+          "name": "far",
+          "types": [
+            "ANARI_FLOAT32"
+          ],
+          "tags": [],
+          "description": "Cycles vendor addition: far clip distance, measured along the ray"
         }
       ]
     },

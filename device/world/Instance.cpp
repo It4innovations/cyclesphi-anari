@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "Instance.h"
+// cycles
+#include "kernel/types.h"
 // std
 #include <cstring>
 
@@ -65,6 +67,41 @@ void Instance::commitParameters()
         m_idArray->size(),
         m_xfmArray->size());
   }
+
+  // CYCLES_INSTANCE_VISIBILITY: which kinds of rays see the objects of this
+  // instance, mapped onto the Cycles object visibility like Blender's object
+  // ray visibility (there is no flag for the Raycast node, it stays visible).
+  // E.g. an emissive plane lighting a room from outside a window is hidden
+  // from camera and shadow rays.
+  const bool visCamera = getParam<bool>("visibility.camera", true);
+  const bool visDiffuse = getParam<bool>("visibility.diffuse", true);
+  const bool visGlossy = getParam<bool>("visibility.glossy", true);
+  const bool visTransmission = getParam<bool>("visibility.transmission", true);
+  const bool visVolumeScatter =
+      getParam<bool>("visibility.volumeScatter", true);
+  const bool visShadow = getParam<bool>("visibility.shadow", true);
+  if (visCamera && visDiffuse && visGlossy && visTransmission
+      && visVolumeScatter && visShadow) {
+    m_visibility = ~0u;
+  } else {
+    uint32_t mask = ccl::PATH_RAY_VISIBILITY_RAYCAST;
+    mask |= visCamera ? ccl::PATH_RAY_VISIBILITY_CAMERA : 0;
+    mask |= visDiffuse ? ccl::PATH_RAY_VISIBILITY_DIFFUSE : 0;
+    mask |= visGlossy ? ccl::PATH_RAY_VISIBILITY_GLOSSY : 0;
+    mask |= visTransmission ? ccl::PATH_RAY_VISIBILITY_TRANSMIT : 0;
+    mask |= visVolumeScatter ? ccl::PATH_RAY_VISIBILITY_VOLUME_SCATTER : 0;
+    mask |= visShadow ? ccl::PATH_RAY_VISIBILITY_SHADOW : 0;
+    m_visibility = mask;
+  }
+
+  // What the Object Info shader node returns for the objects of this
+  // instance: 'objectRandom' is its Random output, the uniform 'color' its
+  // Color and Alpha.
+  m_objectInfo = Group::ObjectInfo();
+  m_objectInfo.hasRandom =
+      getParam("objectRandom", ANARI_FLOAT32, &m_objectInfo.random);
+  m_objectInfo.hasColor =
+      getParam("color", ANARI_FLOAT32_VEC4, &m_objectInfo.color);
 
   m_motionTransform = nullptr;
   m_motionScale = nullptr;
@@ -148,8 +185,8 @@ bool Instance::addInstanceObjectsToCyclesScene(const helium::box1 &shutter)
   if (!isMotionSubtype()) {
     bool deformationMotion = false;
     if (!m_xfmArray) {
-      deformationMotion =
-          m_group->addGroupToCurrentCyclesScene(m_xfm, shutter, nullptr, m_id);
+      deformationMotion = m_group->addGroupToCurrentCyclesScene(
+          m_xfm, shutter, nullptr, m_id, m_visibility, &m_objectInfo);
     } else {
       auto *begin = m_xfmArray->beginAs<helium::mat4>();
       auto *end = m_xfmArray->endAs<helium::mat4>();
@@ -160,8 +197,8 @@ bool Instance::addInstanceObjectsToCyclesScene(const helium::box1 &shutter)
         const size_t i = size_t(m - begin);
         // Per-transform id when provided, else the uniform 'id' fallback.
         const uint32_t id = (ids && i < numIds) ? ids[i] : m_id;
-        deformationMotion |=
-            m_group->addGroupToCurrentCyclesScene(*m, shutter, nullptr, id);
+        deformationMotion |= m_group->addGroupToCurrentCyclesScene(
+            *m, shutter, nullptr, id, m_visibility, &m_objectInfo);
       }
     }
     return deformationMotion;
@@ -176,13 +213,13 @@ bool Instance::addInstanceObjectsToCyclesScene(const helium::box1 &shutter)
   const auto steps = bakeMotionOnShutter(m_motion, shutter);
   if (steps.empty()) {
     return m_group->addGroupToCurrentCyclesScene(
-        motionPoseAt(shutter.lower), shutter, nullptr, m_id);
+        motionPoseAt(shutter.lower), shutter, nullptr, m_id, m_visibility, &m_objectInfo);
   }
 
   // MOTION_POSITION_START contract: the object's base transform is the pose
   // at the shutter start (== motion step 0).
   m_group->addGroupToCurrentCyclesScene(
-      motionPoseAt(shutter.lower), shutter, &steps, m_id);
+      motionPoseAt(shutter.lower), shutter, &steps, m_id, m_visibility, &m_objectInfo);
   return true;
 }
 

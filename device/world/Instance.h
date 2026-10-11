@@ -58,6 +58,15 @@ struct Instance : public Object
   uint32_t m_id{~0u};
   helium::ChangeObserverPtr<Array1D> m_idArray;
 
+  // CYCLES_INSTANCE_VISIBILITY: Cycles ray-visibility bitmask
+  // (PATH_RAY_VISIBILITY_*) of the objects of this instance, from the
+  // 'visibility.*' flags; ~0u (the Cycles default) when all are set.
+  uint32_t m_visibility{~0u};
+
+  // Outputs of the Object Info shader node for the objects of this instance
+  // ('objectRandom' and the uniform 'color').
+  Group::ObjectInfo m_objectInfo;
+
   enum class Subtype
   {
     TRANSFORM,

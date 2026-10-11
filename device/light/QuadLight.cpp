@@ -88,6 +88,9 @@ void QuadLight::finalize()
     // radiance invariant under instance scaling.
     light->set_normalize(false);
     light->set_strength(scaledColor(float(M_PI) * m_radiance));
+    // the back emitter has the settings of the light too
+    light->set_max_bounces(m_maxBounce);
+    light->set_cast_shadow(m_castShadow);
     light->tag_update(deviceState()->scene);
   };
   setup(m_cyclesLight);

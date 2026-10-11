@@ -298,6 +298,8 @@ void FrameOutputDriver::renderEnd()
 
   auto end = std::chrono::steady_clock::now();
   Frame *f = m_impl->frame.ptr;
+  if (!f)
+    return; // no render in flight (already ended, see renderFailed())
   f->m_duration = std::chrono::duration<float>(end - m_impl->start).count();
 
   const uint64_t seq = ++m_impl->renderSeq;
@@ -320,6 +322,28 @@ void FrameOutputDriver::renderEnd()
 
   // Notify the wait thread
   m_impl->cv.notify_all();
+}
+
+void FrameOutputDriver::renderFailed(const std::string &message)
+{
+  helium::IntrusivePtr<Frame> frame;
+  {
+    std::lock_guard<std::mutex> lock(m_impl->mutex);
+    if (m_impl->renderFinished || !m_impl->frame.ptr)
+      return;
+    frame = m_impl->frame;
+  }
+
+  // Reported without the lock: the status callback is application code.
+  frame->reportMessage(
+      ANARI_SEVERITY_ERROR, "the render failed: %s", message.c_str());
+
+  {
+    std::lock_guard<std::mutex> lock(m_impl->mutex);
+    if (m_impl->renderFinished || m_impl->frame.ptr != frame.ptr)
+      return; // ended in the meantime
+  }
+  renderEnd();
 }
 
 void FrameOutputDriver::wait()

@@ -22,10 +22,7 @@ void Orthographic::setCameraCurrent(int width, int height)
   auto &state = *deviceState();
   state.scene->camera->set_camera_type(ccl::CameraType::CAMERA_ORTHOGRAPHIC);
   auto scale = m_height / 2.f;
-  state.scene->camera->viewplane.left = -m_aspect * scale;
-  state.scene->camera->viewplane.right = m_aspect * scale;
-  state.scene->camera->viewplane.bottom = -scale;
-  state.scene->camera->viewplane.top = scale;
+  setViewplane(-m_aspect * scale, m_aspect * scale, -scale, scale);
 }
 
 } // namespace anari_cycles

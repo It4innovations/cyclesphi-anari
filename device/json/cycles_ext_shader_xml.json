@@ -1,0 +1,150 @@
+{
+ "info": {
+  "name": "CYCLES_SHADER_XML",
+  "type": "extension",
+  "comment": "Cycles vendor extension: Cycles shader graphs as XML text for lights and for the world, in the dialect of the 'cyclesXml' material (CYCLES_MATERIAL_CYCLES_XML): one <shader> element with node elements named after the Cycles node type, <socket name value/> children and <connect from_node from_socket to_node to_socket/> elements; the output node is addressed as 'output'. Images are ANARI_SAMPLER parameters of any name holding an 'image2D' sampler: an image_texture or environment_texture node whose 'filename' equals the name of such a parameter samples the array of that sampler. A graph is parsed again only when its text or an image it uses changed. Lights: 'source' is the shader of the light, an emission closure connected to the surface of the output node. It replaces the built-in emission shader (and an 'intensityDistribution'); the strength of the light (color, intensity, power, radiance, irradiance) still scales it. A text that cannot be used reports an error and the light keeps its built-in shader. Renderer: 'backgroundSource' is the world shader, a background closure ('background_shader' node) connected to the surface of the output node. It lights the scene and is what camera rays see, instead of 'ambientRadiance'/'ambientColor' and the 'background' color, and is importance sampled. A 'background' that is an image or a color with alpha < 1 is still composited under the frame: camera rays then do not see the world shader, which keeps lighting the scene. An 'hdri' or 'sky' light of the world takes the background instead of 'backgroundSource'. A text that cannot be used reports an error, 'background' and the ambient light apply then.",
+  "dependencies": []
+ },
+ "objects": [
+  {
+   "type": "ANARI_LIGHT",
+   "name": "directional",
+   "parameters": [
+    {
+     "name": "source",
+     "types": [
+      "ANARI_STRING"
+     ],
+     "tags": [],
+     "description": "Cycles shader graph of the light: the XML text of one <shader> element"
+    }
+   ]
+  },
+  {
+   "type": "ANARI_LIGHT",
+   "name": "point",
+   "parameters": [
+    {
+     "name": "source",
+     "types": [
+      "ANARI_STRING"
+     ],
+     "tags": [],
+     "description": "Cycles shader graph of the light: the XML text of one <shader> element"
+    }
+   ]
+  },
+  {
+   "type": "ANARI_LIGHT",
+   "name": "spot",
+   "parameters": [
+    {
+     "name": "source",
+     "types": [
+      "ANARI_STRING"
+     ],
+     "tags": [],
+     "description": "Cycles shader graph of the light: the XML text of one <shader> element"
+    }
+   ]
+  },
+  {
+   "type": "ANARI_LIGHT",
+   "name": "quad",
+   "parameters": [
+    {
+     "name": "source",
+     "types": [
+      "ANARI_STRING"
+     ],
+     "tags": [],
+     "description": "Cycles shader graph of the light: the XML text of one <shader> element"
+    }
+   ]
+  },
+  {
+   "type": "ANARI_LIGHT",
+   "name": "ring",
+   "parameters": [
+    {
+     "name": "source",
+     "types": [
+      "ANARI_STRING"
+     ],
+     "tags": [],
+     "description": "Cycles shader graph of the light: the XML text of one <shader> element"
+    }
+   ]
+  },
+  {
+   "type": "ANARI_RENDERER",
+   "name": "default",
+   "parameters": [
+    {
+     "name": "backgroundSource",
+     "types": [
+      "ANARI_STRING"
+     ],
+     "tags": [],
+     "description": "Cycles world shader graph: the XML text of one <shader> element"
+    }
+   ]
+  },
+  {
+   "type": "ANARI_RENDERER",
+   "name": "ao",
+   "parameters": [
+    {
+     "name": "backgroundSource",
+     "types": [
+      "ANARI_STRING"
+     ],
+     "tags": [],
+     "description": "Cycles world shader graph: the XML text of one <shader> element"
+    }
+   ]
+  },
+  {
+   "type": "ANARI_RENDERER",
+   "name": "dpt",
+   "parameters": [
+    {
+     "name": "backgroundSource",
+     "types": [
+      "ANARI_STRING"
+     ],
+     "tags": [],
+     "description": "Cycles world shader graph: the XML text of one <shader> element"
+    }
+   ]
+  },
+  {
+   "type": "ANARI_RENDERER",
+   "name": "raycast",
+   "parameters": [
+    {
+     "name": "backgroundSource",
+     "types": [
+      "ANARI_STRING"
+     ],
+     "tags": [],
+     "description": "Cycles world shader graph: the XML text of one <shader> element"
+    }
+   ]
+  },
+  {
+   "type": "ANARI_RENDERER",
+   "name": "debug",
+   "parameters": [
+    {
+     "name": "backgroundSource",
+     "types": [
+      "ANARI_STRING"
+     ],
+     "tags": [],
+     "description": "Cycles world shader graph: the XML text of one <shader> element"
+    }
+   ]
+  }
+ ]
+}

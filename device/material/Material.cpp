@@ -3,6 +3,7 @@
 
 #include "Material.h"
 // subtypes
+#include "CyclesXmlMaterial.h"
 #include "HairMaterial.h"
 #include "MatteMaterial.h"
 #include "OSLMaterial.h"
@@ -46,6 +47,8 @@ Material *Material::createInstance(std::string_view type, CyclesGlobalState *s)
     return new HairMaterial(s);
   else if (type == "osl")
     return new OSLMaterial(s);
+  else if (type == "cyclesXml")
+    return new CyclesXmlMaterial(s);
   else
     return (Material *)new UnknownObject(ANARI_MATERIAL, type, s);
 }
@@ -117,11 +120,7 @@ void Material::makeGraph()
   attr3->name = "attr3";
   attr3->set_attribute(ccl::ustring("vertex.attribute3"));
 
-  // 'primitiveId' is uploaded by every geometry as a per-primitive float
-  // attribute (see writePrimitiveId() in geometry/GeometryAttributes.h).
-  auto *attrPid = m_graph->create_node<ccl::AttributeNode>();
-  attrPid->name = "attrPid";
-  attrPid->set_attribute(ccl::ustring("primitiveId"));
+  auto *attrPid = addIdChannelNodes(m_graph);
 
   auto *vertexColor_sc = m_graph->create_node<ccl::SeparateColorNode>();
   m_graph->connect(
@@ -138,33 +137,6 @@ void Material::makeGraph()
 
   auto *attr3_sc = m_graph->create_node<ccl::SeparateColorNode>();
   m_graph->connect(attr3->output("Color"), attr3_sc->input("Color"));
-
-  // Frame channels 'primitiveId'/'instanceId' (KHR_FRAME_CHANNEL_*): every
-  // surface material writes two value AOVs that back the equally named
-  // PASS_AOV_VALUE passes created at device init. Both ids are stored
-  // biased by +1 so untouched pixels (background, volumes -- Cycles does
-  // not run AOV nodes in volume shading) read back 0, which the frame
-  // extraction maps to ~0u ("no id"); see
-  // FrameOutputDriver::extractAovIdPass().
-  auto *pidBias = m_graph->create_node<ccl::MathNode>();
-  pidBias->name = "pidBias";
-  pidBias->set_math_type(ccl::NODE_MATH_ADD);
-  m_graph->connect(attrPid->output("Fac"), pidBias->input("Value1"));
-  pidBias->input("Value2")->set(1.f);
-
-  auto *aovPid = m_graph->create_node<ccl::OutputAOVNode>();
-  aovPid->set_name(ccl::ustring("primitiveId"));
-  m_graph->connect(pidBias->output("Value"), aovPid->input("Value"));
-
-  // 'instanceId' is a per-object (not per-geometry) float attribute set in
-  // Group::addGroupToCurrentCyclesScene(), already stored biased by +1.
-  auto *attrIid = m_graph->create_node<ccl::AttributeNode>();
-  attrIid->name = "attrIid";
-  attrIid->set_attribute(ccl::ustring("instanceId"));
-
-  auto *aovIid = m_graph->create_node<ccl::OutputAOVNode>();
-  aovIid->set_name(ccl::ustring("instanceId"));
-  m_graph->connect(attrIid->output("Fac"), aovIid->input("Value"));
 
   m_attributeNodes.attrC = vertexColor->output("Color");
   m_attributeNodes.attr0 = attr0->output("Color");
@@ -183,6 +155,44 @@ void Material::makeGraph()
   m_attributeNodes.attr1_a = attr1->output("Alpha");
   m_attributeNodes.attr2_a = attr2->output("Alpha");
   m_attributeNodes.attr3_a = attr3->output("Alpha");
+}
+
+ccl::AttributeNode *Material::addIdChannelNodes(ccl::ShaderGraph *graph)
+{
+  // 'primitiveId' is uploaded by every geometry as a per-primitive float
+  // attribute (see writePrimitiveId() in geometry/GeometryAttributes.h).
+  auto *attrPid = graph->create_node<ccl::AttributeNode>();
+  attrPid->name = "attrPid";
+  attrPid->set_attribute(ccl::ustring("primitiveId"));
+
+  // Frame channels 'primitiveId'/'instanceId' (KHR_FRAME_CHANNEL_*): every
+  // surface material writes two value AOVs that back the equally named
+  // PASS_AOV_VALUE passes created at device init. Both ids are stored
+  // biased by +1 so untouched pixels (background, volumes -- Cycles does
+  // not run AOV nodes in volume shading) read back 0, which the frame
+  // extraction maps to ~0u ("no id"); see
+  // FrameOutputDriver::extractAovIdPass().
+  auto *pidBias = graph->create_node<ccl::MathNode>();
+  pidBias->name = "pidBias";
+  pidBias->set_math_type(ccl::NODE_MATH_ADD);
+  graph->connect(attrPid->output("Fac"), pidBias->input("Value1"));
+  pidBias->input("Value2")->set(1.f);
+
+  auto *aovPid = graph->create_node<ccl::OutputAOVNode>();
+  aovPid->set_name(ccl::ustring("primitiveId"));
+  graph->connect(pidBias->output("Value"), aovPid->input("Value"));
+
+  // 'instanceId' is a per-object (not per-geometry) float attribute set in
+  // Group::addGroupToCurrentCyclesScene(), already stored biased by +1.
+  auto *attrIid = graph->create_node<ccl::AttributeNode>();
+  attrIid->name = "attrIid";
+  attrIid->set_attribute(ccl::ustring("instanceId"));
+
+  auto *aovIid = graph->create_node<ccl::OutputAOVNode>();
+  aovIid->set_name(ccl::ustring("instanceId"));
+  graph->connect(attrIid->output("Fac"), aovIid->input("Value"));
+
+  return attrPid;
 }
 
 // The 4th (alpha) component of an attribute source, or nullptr when it is

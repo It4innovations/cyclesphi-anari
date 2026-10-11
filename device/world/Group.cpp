@@ -29,7 +29,9 @@ void Group::commitParameters()
 bool Group::addGroupToCurrentCyclesScene(const math::mat4 &xfm,
     const helium::box1 &shutter,
     const std::vector<ccl::Transform> *motion,
-    uint32_t instanceId) const
+    uint32_t instanceId,
+    uint32_t instanceVisibility,
+    const ObjectInfo *objectInfo) const
 {
   auto &state = *deviceState();
   bool deformationMotion = false;
@@ -71,6 +73,10 @@ bool Group::addGroupToCurrentCyclesScene(const math::mat4 &xfm,
       }
       if (!s->cyclesGeometry())
         return;
+      // Like Blender's Cycles: no object for something no ray can see.
+      const uint32_t visibility = s->visibilityMask() & instanceVisibility;
+      if ((visibility & ccl::PATH_RAY_VISIBILITY_ALL) == 0)
+        return;
       // KHR_GEOMETRY_*_MOTION_DEFORMATION: (re)bake the geometry's motion
       // keys onto this shutter (cached; no-op for non-deforming geometry).
       deformationMotion |= s->bakeGeometryMotion(shutter);
@@ -80,11 +86,25 @@ bool Group::addGroupToCurrentCyclesScene(const math::mat4 &xfm,
       setMotion(o);
       setInstanceId(o);
       o->set_pass_id(s->id());
-      // Ray visibility / compositing flags live on the ANARI Surface, so
-      // every instance of a surface shares them (documented limitation of
-      // CYCLES_SURFACE_COMPOSITING). set_visibility() no-ops at the default
-      // mask (~0u).
-      o->set_visibility(s->visibilityMask());
+      // Object Info shader node: the kernel's random number of an object is
+      // random_id / 0xFFFFFFFF.
+      if (objectInfo && objectInfo->hasRandom) {
+        const double random =
+            std::clamp(double(objectInfo->random), 0.0, 1.0) * 4294967295.0;
+        o->set_random_id(uint32_t(random + 0.5));
+      }
+      if (objectInfo && objectInfo->hasColor) {
+        o->set_color(ccl::make_float3(objectInfo->color[0],
+            objectInfo->color[1],
+            objectInfo->color[2]));
+        o->set_alpha(objectInfo->color[3]);
+      }
+      // Ray visibility: the flags of the ANARI Surface
+      // (CYCLES_SURFACE_COMPOSITING, shared by every instance of the
+      // surface) and the ones of the instance (CYCLES_INSTANCE_VISIBILITY).
+      // set_visibility() no-ops at the default mask (~0u). The compositing
+      // flags live on the surface only.
+      o->set_visibility(visibility);
       o->set_use_holdout(s->holdout());
       o->set_is_shadow_catcher(s->shadowCatcher());
       // CYCLES_LIGHT_LINKING receiver/blocker set indices and the
@@ -107,12 +127,15 @@ bool Group::addGroupToCurrentCyclesScene(const math::mat4 &xfm,
       }
       if (!v->cyclesGeometry())
         return;
+      if ((instanceVisibility & ccl::PATH_RAY_VISIBILITY_ALL) == 0)
+        return;
       auto *o = state.scene->create_node<ccl::Object>();
       o->set_geometry(v->cyclesGeometry());
       o->set_tfm(cxfm);
       setMotion(o);
       setInstanceId(o);
       o->set_pass_id(v->id());
+      o->set_visibility(instanceVisibility);
     });
   }
 
@@ -145,6 +168,13 @@ bool Group::addGroupToCurrentCyclesScene(const math::mat4 &xfm,
         // illumination of the scene is unaffected.
         if (!l->visibleToCamera())
           o->set_visibility(o->get_visibility() & ~ccl::PATH_RAY_VISIBILITY_CAMERA);
+        // CYCLES_INSTANCE_VISIBILITY: for a light the flags say which kinds
+        // of rays it lights (Cycles excludes it from the others).
+        if (instanceVisibility != ~0u)
+          o->set_visibility(o->get_visibility() & instanceVisibility);
+        // The same flags of the light itself ('visibility.*').
+        if (l->rayVisibility() != ~0u)
+          o->set_visibility(o->get_visibility() & l->rayVisibility());
         // CYCLES_LIGHT_LINKING: which receiver sets this light illuminates
         // and which blocker sets shadow it (default ~0 = all sets), plus the
         // CYCLES_LIGHTGROUPS pass its emission accumulates into. Setters

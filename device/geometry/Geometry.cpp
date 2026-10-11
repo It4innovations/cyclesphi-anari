@@ -18,8 +18,24 @@ namespace anari_cycles {
 
 Geometry::Geometry(CyclesGlobalState *s)
     : Object(ANARI_GEOMETRY, s),
-      m_vertexAttr{{{this}, {this}, {this}, {this}, {this}}},
-      m_primitiveAttr{{{this}, {this}, {this}, {this}, {this}}},
+      m_vertexAttr{{{this},
+          {this},
+          {this},
+          {this},
+          {this},
+          {this},
+          {this},
+          {this},
+          {this}}},
+      m_primitiveAttr{{{this},
+          {this},
+          {this},
+          {this},
+          {this},
+          {this},
+          {this},
+          {this},
+          {this}}},
       m_primitiveId(this)
 {}
 

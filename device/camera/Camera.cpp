@@ -14,6 +14,11 @@
 
 namespace anari_cycles {
 
+// Clip distances of the Cycles camera when 'near'/'far' are not set (the
+// defaults of its sockets).
+static constexpr float g_defaultNearClip = 1e-5f;
+static constexpr float g_defaultFarClip = 1e5f;
+
 Camera::Camera(CyclesGlobalState *s)
     : Object(ANARI_CAMERA, s),
       m_motionTransform(this),
@@ -41,6 +46,25 @@ void Camera::commitParameters()
   m_pos = getParam<anari_vec::float3>("position", {0.f, 0.f, 0.f});
   m_dir = getParam<anari_vec::float3>("direction", {0.f, 0.f, -1.f});
   m_up = getParam<anari_vec::float3>("up", {0.f, 1.f, 0.f});
+
+  // 'imageRegion' (left untouched by getParam() when it is not set)
+  m_imageRegion[0] = m_imageRegion[1] = 0.f;
+  m_imageRegion[2] = m_imageRegion[3] = 1.f;
+  getParam("imageRegion", ANARI_FLOAT32_BOX2, m_imageRegion);
+
+  // 'near'/'far': clip distances. Cycles cannot project with a near distance
+  // of 0, its own default is the smallest one used here.
+  m_near = hasParam("near", ANARI_FLOAT32)
+      ? std::max(getParam<float>("near", 0.f), g_defaultNearClip)
+      : -1.f;
+  m_far = hasParam("far", ANARI_FLOAT32) ? getParam<float>("far", 0.f) : -1.f;
+  if (m_far >= 0.f && m_far <= std::max(m_near, g_defaultNearClip)) {
+    reportMessage(ANARI_SEVERITY_WARNING,
+        "camera 'far' (%f) is not beyond 'near' (%f) -- ignoring 'far'",
+        m_far,
+        std::max(m_near, g_defaultNearClip));
+    m_far = -1.f;
+  }
   // KHR_CAMERA_DEPTH_OF_FIELD -- ANARI 'apertureRadius' is the lens radius in
   // world units, which is exactly what Cycles 'aperturesize' scales its
   // unit-disk lens samples by (kernel/camera/camera.h).
@@ -197,6 +221,13 @@ void Camera::setCameraCurrent(int width, int height)
 
   state.scene->camera->set_full_width(width);
   state.scene->camera->set_full_height(height);
+  // 'near'/'far' are the Cycles clip distances: the distance of a clip plane
+  // from the camera along the viewing direction for the perspective and the
+  // orthographic camera (not the length of the ray, which is what the ANARI
+  // clip *planes* mean as well), the distance along the ray for the
+  // omnidirectional camera.
+  state.scene->camera->set_nearclip(m_near >= 0.f ? m_near : g_defaultNearClip);
+  state.scene->camera->set_farclip(m_far >= 0.f ? m_far : g_defaultFarClip);
   state.scene->camera->set_aperturesize(std::max(m_apertureRadius, 0.f));
   state.scene->camera->set_focaldistance(m_focusDistance);
   state.scene->camera->set_blades(
@@ -258,6 +289,17 @@ void Camera::setCameraCurrent(int width, int height)
 
   state.scene->camera->need_flags_update = true;
   state.scene->camera->need_device_update = true;
+}
+
+void Camera::setViewplane(float left, float right, float bottom, float top)
+{
+  auto *camera = deviceState()->scene->camera;
+  const float width = right - left;
+  const float height = top - bottom;
+  camera->set_viewplane_left(left + m_imageRegion[0] * width);
+  camera->set_viewplane_right(left + m_imageRegion[2] * width);
+  camera->set_viewplane_bottom(bottom + m_imageRegion[1] * height);
+  camera->set_viewplane_top(bottom + m_imageRegion[3] * height);
 }
 
 bool Camera::usesNativeStereo() const

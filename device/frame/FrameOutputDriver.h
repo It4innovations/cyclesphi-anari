@@ -8,6 +8,7 @@
 #include "session/output_driver.h"
 // std
 #include <memory>
+#include <string>
 #include <vector>
 
 namespace anari_cycles {
@@ -23,6 +24,10 @@ struct FrameOutputDriver : public ccl::OutputDriver
 
   bool renderBegin(Frame *);
   void renderEnd();
+  // Ends the in-flight render (if any) which the session gave up with an
+  // error: no tile is delivered then. Reports the error on the frame and
+  // wakes everything which waits for it.
+  void renderFailed(const std::string &message);
 
   // Blocks until the in-flight render (if any) has delivered its tile.
   void wait();

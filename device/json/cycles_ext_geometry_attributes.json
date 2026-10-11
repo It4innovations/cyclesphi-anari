@@ -1,0 +1,250 @@
+{
+    "info":  {
+                 "name":  "CYCLES_GEOMETRY_ATTRIBUTES",
+                 "type":  "extension",
+                 "comment":  "Cycles vendor extension: four more general attribute channels, \u0027attribute4\u0027..\u0027attribute7\u0027, next to \u0027attribute0\u0027..\u0027attribute3\u0027 of ANARI. They have the same rates and precedence (faceVarying \u003e vertex \u003e primitive \u003e uniform) and are read by the graphs of \u0027cyclesXml\u0027 materials with attribute nodes named \u0027vertex.attribute4\u0027..\u0027vertex.attribute7\u0027; the samplers and the other material subtypes only take the ANARI attributes. Declared on \u0027triangle\u0027, every geometry subtype takes the rates it has for the ANARI attributes.",
+                 "dependencies":  [
+
+                                  ]
+             },
+    "objects":  [
+                    {
+                        "type":  "ANARI_GEOMETRY",
+                        "name":  "triangle",
+                        "parameters":  [
+                                           {
+                                               "name":  "vertex.attribute4",
+                                               "types":  [
+                                                             "ANARI_ARRAY1D"
+                                                         ],
+                                               "elementType":  [
+                                                                   "ANARI_FLOAT32",
+                                                                   "ANARI_FLOAT32_VEC2",
+                                                                   "ANARI_FLOAT32_VEC3",
+                                                                   "ANARI_FLOAT32_VEC4"
+                                                               ],
+                                               "tags":  [
+
+                                                        ],
+                                               "description":  "vertex attribute4"
+                                           },
+                                           {
+                                               "name":  "vertex.attribute5",
+                                               "types":  [
+                                                             "ANARI_ARRAY1D"
+                                                         ],
+                                               "elementType":  [
+                                                                   "ANARI_FLOAT32",
+                                                                   "ANARI_FLOAT32_VEC2",
+                                                                   "ANARI_FLOAT32_VEC3",
+                                                                   "ANARI_FLOAT32_VEC4"
+                                                               ],
+                                               "tags":  [
+
+                                                        ],
+                                               "description":  "vertex attribute5"
+                                           },
+                                           {
+                                               "name":  "vertex.attribute6",
+                                               "types":  [
+                                                             "ANARI_ARRAY1D"
+                                                         ],
+                                               "elementType":  [
+                                                                   "ANARI_FLOAT32",
+                                                                   "ANARI_FLOAT32_VEC2",
+                                                                   "ANARI_FLOAT32_VEC3",
+                                                                   "ANARI_FLOAT32_VEC4"
+                                                               ],
+                                               "tags":  [
+
+                                                        ],
+                                               "description":  "vertex attribute6"
+                                           },
+                                           {
+                                               "name":  "vertex.attribute7",
+                                               "types":  [
+                                                             "ANARI_ARRAY1D"
+                                                         ],
+                                               "elementType":  [
+                                                                   "ANARI_FLOAT32",
+                                                                   "ANARI_FLOAT32_VEC2",
+                                                                   "ANARI_FLOAT32_VEC3",
+                                                                   "ANARI_FLOAT32_VEC4"
+                                                               ],
+                                               "tags":  [
+
+                                                        ],
+                                               "description":  "vertex attribute7"
+                                           },
+                                           {
+                                               "name":  "faceVarying.attribute4",
+                                               "types":  [
+                                                             "ANARI_ARRAY1D"
+                                                         ],
+                                               "elementType":  [
+                                                                   "ANARI_FLOAT32",
+                                                                   "ANARI_FLOAT32_VEC2",
+                                                                   "ANARI_FLOAT32_VEC3",
+                                                                   "ANARI_FLOAT32_VEC4"
+                                                               ],
+                                               "tags":  [
+
+                                                        ],
+                                               "description":  "faceVarying attribute4"
+                                           },
+                                           {
+                                               "name":  "faceVarying.attribute5",
+                                               "types":  [
+                                                             "ANARI_ARRAY1D"
+                                                         ],
+                                               "elementType":  [
+                                                                   "ANARI_FLOAT32",
+                                                                   "ANARI_FLOAT32_VEC2",
+                                                                   "ANARI_FLOAT32_VEC3",
+                                                                   "ANARI_FLOAT32_VEC4"
+                                                               ],
+                                               "tags":  [
+
+                                                        ],
+                                               "description":  "faceVarying attribute5"
+                                           },
+                                           {
+                                               "name":  "faceVarying.attribute6",
+                                               "types":  [
+                                                             "ANARI_ARRAY1D"
+                                                         ],
+                                               "elementType":  [
+                                                                   "ANARI_FLOAT32",
+                                                                   "ANARI_FLOAT32_VEC2",
+                                                                   "ANARI_FLOAT32_VEC3",
+                                                                   "ANARI_FLOAT32_VEC4"
+                                                               ],
+                                               "tags":  [
+
+                                                        ],
+                                               "description":  "faceVarying attribute6"
+                                           },
+                                           {
+                                               "name":  "faceVarying.attribute7",
+                                               "types":  [
+                                                             "ANARI_ARRAY1D"
+                                                         ],
+                                               "elementType":  [
+                                                                   "ANARI_FLOAT32",
+                                                                   "ANARI_FLOAT32_VEC2",
+                                                                   "ANARI_FLOAT32_VEC3",
+                                                                   "ANARI_FLOAT32_VEC4"
+                                                               ],
+                                               "tags":  [
+
+                                                        ],
+                                               "description":  "faceVarying attribute7"
+                                           },
+                                           {
+                                               "name":  "primitive.attribute4",
+                                               "types":  [
+                                                             "ANARI_ARRAY1D"
+                                                         ],
+                                               "elementType":  [
+                                                                   "ANARI_FLOAT32",
+                                                                   "ANARI_FLOAT32_VEC2",
+                                                                   "ANARI_FLOAT32_VEC3",
+                                                                   "ANARI_FLOAT32_VEC4"
+                                                               ],
+                                               "tags":  [
+
+                                                        ],
+                                               "description":  "primitive attribute4"
+                                           },
+                                           {
+                                               "name":  "primitive.attribute5",
+                                               "types":  [
+                                                             "ANARI_ARRAY1D"
+                                                         ],
+                                               "elementType":  [
+                                                                   "ANARI_FLOAT32",
+                                                                   "ANARI_FLOAT32_VEC2",
+                                                                   "ANARI_FLOAT32_VEC3",
+                                                                   "ANARI_FLOAT32_VEC4"
+                                                               ],
+                                               "tags":  [
+
+                                                        ],
+                                               "description":  "primitive attribute5"
+                                           },
+                                           {
+                                               "name":  "primitive.attribute6",
+                                               "types":  [
+                                                             "ANARI_ARRAY1D"
+                                                         ],
+                                               "elementType":  [
+                                                                   "ANARI_FLOAT32",
+                                                                   "ANARI_FLOAT32_VEC2",
+                                                                   "ANARI_FLOAT32_VEC3",
+                                                                   "ANARI_FLOAT32_VEC4"
+                                                               ],
+                                               "tags":  [
+
+                                                        ],
+                                               "description":  "primitive attribute6"
+                                           },
+                                           {
+                                               "name":  "primitive.attribute7",
+                                               "types":  [
+                                                             "ANARI_ARRAY1D"
+                                                         ],
+                                               "elementType":  [
+                                                                   "ANARI_FLOAT32",
+                                                                   "ANARI_FLOAT32_VEC2",
+                                                                   "ANARI_FLOAT32_VEC3",
+                                                                   "ANARI_FLOAT32_VEC4"
+                                                               ],
+                                               "tags":  [
+
+                                                        ],
+                                               "description":  "primitive attribute7"
+                                           },
+                                           {
+                                               "name":  "attribute4",
+                                               "types":  [
+                                                             "ANARI_FLOAT32_VEC4"
+                                                         ],
+                                               "tags":  [
+
+                                                        ],
+                                               "description":  "uniform attribute4"
+                                           },
+                                           {
+                                               "name":  "attribute5",
+                                               "types":  [
+                                                             "ANARI_FLOAT32_VEC4"
+                                                         ],
+                                               "tags":  [
+
+                                                        ],
+                                               "description":  "uniform attribute5"
+                                           },
+                                           {
+                                               "name":  "attribute6",
+                                               "types":  [
+                                                             "ANARI_FLOAT32_VEC4"
+                                                         ],
+                                               "tags":  [
+
+                                                        ],
+                                               "description":  "uniform attribute6"
+                                           },
+                                           {
+                                               "name":  "attribute7",
+                                               "types":  [
+                                                             "ANARI_FLOAT32_VEC4"
+                                                         ],
+                                               "tags":  [
+
+                                                        ],
+                                               "description":  "uniform attribute7"
+                                           }
+                                       ]
+                    }
+                ]
+}

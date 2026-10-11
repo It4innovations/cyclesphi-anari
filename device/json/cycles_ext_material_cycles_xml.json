@@ -1,0 +1,50 @@
+{
+ "info": {
+  "name": "CYCLES_MATERIAL_CYCLES_XML",
+  "type": "extension",
+  "comment": [
+   "Cycles vendor extension: 'cyclesXml' material subtype taking a whole",
+   "Cycles shader graph as text. 'source' holds one <shader> element in the",
+   "dialect of cyclesphi's XML reader: node elements named after the Cycles",
+   "node type with a 'name' attribute and <socket name value/> children,",
+   "followed by <connect from_node from_socket to_node to_socket/> elements;",
+   "the output node is addressed as 'output'. <socket> children of the",
+   "<shader> element set the shader settings. Colors and vectors are 4",
+   "floats, transforms 12 floats, arrays are written inline.",
+   "Images are passed as ANARI_SAMPLER parameters of any name holding an",
+   "'image2D' sampler: an image_texture or environment_texture node whose",
+   "'filename' equals the name of such a parameter samples the array of that",
+   "sampler (sRGB element types are decoded, all others are linear); filter",
+   "and wrap modes of the sampler are ignored, the node has its own.",
+   "Geometry attributes are read with attribute nodes named",
+   "'vertex.attribute0'..'vertex.attribute7' (4 to 7 are the channels of",
+   "CYCLES_GEOMETRY_ATTRIBUTES) and 'vertex.color'. Tangent",
+   "space normal maps use the tangent of the geometry ('vertex.tangent').",
+   "The graph is parsed again only when 'source' or an image it uses",
+   "changed. A text that cannot be used reports an error and renders a gray",
+   "diffuse fallback."
+  ],
+  "dependencies": []
+ },
+ "objects": [
+  {
+   "type": "ANARI_MATERIAL",
+   "name": "cyclesXml",
+   "description": "material driven by a Cycles shader graph given as XML text",
+   "parameters": [
+    {
+     "name": "name",
+     "types": ["ANARI_STRING"],
+     "tags": [],
+     "description": "optional object name"
+    },
+    {
+     "name": "source",
+     "types": ["ANARI_STRING"],
+     "tags": [],
+     "description": "Cycles shader graph: the XML text of one <shader> element"
+    }
+   ]
+  }
+ ]
+}

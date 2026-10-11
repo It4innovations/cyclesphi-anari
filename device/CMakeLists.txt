@@ -31,6 +31,7 @@ PRIVATE
   Device.cpp
   Library.cpp
   Object.cpp
+  XmlShaderGraph.cpp
   array/Array1D.cpp
   array/ObjectArray.cpp
   camera/Camera.cpp
@@ -55,6 +56,7 @@ PRIVATE
   light/Sky.cpp
   light/Spot.cpp
   light/UnknownLight.cpp
+  material/CyclesXmlMaterial.cpp
   material/HairMaterial.cpp
   material/Material.cpp
   material/MatteMaterial.cpp
@@ -112,6 +114,16 @@ endif()
 if(ANARI_CYCLES_HAS_SSE42)
   target_compile_options(${PROJECT_NAME} PRIVATE -msse4.2)
 endif()
+
+# On ARM, Cycles turns its SSE code paths into NEON with sse2neon (WITH_SSE2NEON, set for
+# the Cycles libraries in the cyclesphi directory). The Cycles headers which the device
+# includes have to see the same definition.
+get_directory_property(_cycles_definitions
+  DIRECTORY ${CMAKE_SOURCE_DIR}/cyclesphi/src COMPILE_DEFINITIONS)
+if("WITH_SSE2NEON" IN_LIST _cycles_definitions)
+  target_compile_definitions(${PROJECT_NAME} PRIVATE WITH_SSE2NEON)
+endif()
+unset(_cycles_definitions)
 
 if(ANARI_CYCLES_USE_OPTIX)
   target_compile_definitions(${PROJECT_NAME} PRIVATE WITH_OPTIX)
@@ -180,6 +192,23 @@ endif()
 
 if(WIN32)
   target_link_libraries(${PROJECT_NAME} PRIVATE version)
+endif()
+
+if(APPLE)
+  # System frameworks used by the Cycles libraries (the Metal device, the system
+  # information of `util`). The Cycles applications link them through
+  # `cycles_external_libraries_append`.
+  target_link_libraries(${PROJECT_NAME} PRIVATE "-framework Foundation" "-framework IOKit")
+
+  # Only export the entry points of the library. dyld coalesces exported weak symbols
+  # (inline functions, template instantiations) across all images of a process, so
+  # without this the Cycles inside this library is mixed with the Cycles of a host
+  # application which has its own, such as Blender. The two are built with different
+  # options (memory allocator), and the mix crashes on the first allocation.
+  target_link_options(${PROJECT_NAME} PRIVATE
+    "LINKER:-exported_symbol,_anari_library_cycles_new_library"
+    "LINKER:-exported_symbol,_anariNewCyclesDevice"
+  )
 endif()
 
 ## ANARI query code generation ##
@@ -272,3 +301,17 @@ install(TARGETS ${PROJECT_NAME}
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/xml/
   DESTINATION ${ANARI_CYCLES_PLUGIN_INSTALL_DIR}/cycles/anari
 )
+
+if(APPLE AND WITH_CYCLES_DEVICE_METAL)
+  # The Metal kernels are compiled at runtime from the kernel sources. Cycles reads them
+  # from path_get("source"), which Library.cpp points next to the device:
+  # <device directory>/cycles/source/{kernel,util}, the layout Blender installs to
+  # scripts/addons_core/cycles/source. (The install rules of Cycles itself are excluded,
+  # see the top-level CMakeLists.txt.)
+  install(DIRECTORY
+    ${CMAKE_SOURCE_DIR}/cyclesphi/src/kernel
+    ${CMAKE_SOURCE_DIR}/cyclesphi/src/util
+    DESTINATION ${ANARI_CYCLES_PLUGIN_INSTALL_DIR}/cycles/source
+    FILES_MATCHING PATTERN "*.h" PATTERN "*.metal"
+  )
+endif()

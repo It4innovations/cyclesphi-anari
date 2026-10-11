@@ -18,6 +18,13 @@ struct Image2D : public Sampler
 
   SamplerOutputs createNodeGraph(ccl::ShaderGraph *graph) override;
 
+  // The image array, for materials which sample it with their own image
+  // nodes ('cyclesXml'); nullptr when the sampler is not valid.
+  Array2D *image() const
+  {
+    return m_image.ptr;
+  }
+
  private:
   // Cycles has a single extension mode for all image axes (stored in the
   // ImageParams at add_image() time -- the node socket is ignored for

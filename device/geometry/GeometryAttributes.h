@@ -44,17 +44,33 @@ enum AttributeChannel
   CH_ATTRIBUTE1,
   CH_ATTRIBUTE2,
   CH_ATTRIBUTE3,
+  // CYCLES_GEOMETRY_ATTRIBUTES
+  CH_ATTRIBUTE4,
+  CH_ATTRIBUTE5,
+  CH_ATTRIBUTE6,
+  CH_ATTRIBUTE7,
 };
 
-inline const char *CHANNEL_PARAM[Geometry::NUM_ATTRIBUTE_CHANNELS] = {
-    "color", "attribute0", "attribute1", "attribute2", "attribute3"};
+inline const char *CHANNEL_PARAM[Geometry::NUM_ATTRIBUTE_CHANNELS] = {"color",
+    "attribute0",
+    "attribute1",
+    "attribute2",
+    "attribute3",
+    "attribute4",
+    "attribute5",
+    "attribute6",
+    "attribute7"};
 
 inline const char *CHANNEL_CYCLES_NAME[Geometry::NUM_ATTRIBUTE_CHANNELS] = {
     "vertex.color",
     "vertex.attribute0",
     "vertex.attribute1",
     "vertex.attribute2",
-    "vertex.attribute3"};
+    "vertex.attribute3",
+    "vertex.attribute4",
+    "vertex.attribute5",
+    "vertex.attribute6",
+    "vertex.attribute7"};
 
 // Cycles' AttributeNode outputs (0,0,0) for absent attributes, but the ANARI
 // default for the 'color' attribute is opaque white — geometries without any

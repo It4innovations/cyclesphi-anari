@@ -5,9 +5,12 @@
 // helium
 #include "helium/helium_math.h"
 // cycles
+#include "kernel/types.h"
 #include "scene/background.h"
 #include "scene/film.h"
 #include "scene/integrator.h"
+#include "scene/light.h"
+#include "scene/object.h"
 #include "scene/pass.h"
 #include "scene/shader_graph.h"
 #include "scene/shader_nodes.h"
@@ -74,7 +77,9 @@ math::float4 texelToLinearRGBA(
 
 } // namespace
 
-Renderer::Renderer(CyclesGlobalState *s) : Object(ANARI_RENDERER, s)
+Renderer::Renderer(CyclesGlobalState *s)
+    : Object(ANARI_RENDERER, s),
+      m_backgroundGraph(this, "renderer 'backgroundSource'")
 {
   commitParameters();
 }
@@ -97,6 +102,27 @@ void Renderer::commitParameters()
   m_needsUpdateStatus.backgroundImage |=
       (m_backgroundImageArray.ptr != backgroundImage);
   m_backgroundImageArray = backgroundImage;
+
+  // CYCLES_SHADER_XML: the world shader as XML text
+  auto backgroundSource = getParamString("backgroundSource", "");
+  m_needsUpdateStatus.background |= (m_backgroundSource != backgroundSource);
+  m_backgroundSource = std::move(backgroundSource);
+
+  // CYCLES_SHADER_XML: which kinds of rays see that world shader, like the
+  // ray visibility of a Blender world -- a world which only the camera sees
+  // is a backdrop and does not light the scene.
+  uint32_t backgroundVisibility = ccl::PATH_RAY_VISIBILITY_ALL;
+  if (!getParam<bool>("backgroundVisibility.diffuse", true))
+    backgroundVisibility &= ~uint32_t(ccl::PATH_RAY_VISIBILITY_DIFFUSE);
+  if (!getParam<bool>("backgroundVisibility.glossy", true))
+    backgroundVisibility &= ~uint32_t(ccl::PATH_RAY_VISIBILITY_GLOSSY);
+  if (!getParam<bool>("backgroundVisibility.transmission", true))
+    backgroundVisibility &= ~uint32_t(ccl::PATH_RAY_VISIBILITY_TRANSMIT);
+  if (!getParam<bool>("backgroundVisibility.volumeScatter", true))
+    backgroundVisibility &= ~uint32_t(ccl::PATH_RAY_VISIBILITY_VOLUME_SCATTER);
+  m_needsUpdateStatus.background |=
+      (m_backgroundVisibility != backgroundVisibility);
+  m_backgroundVisibility = backgroundVisibility;
 
   auto ambientColor = getParam<math::float3>("ambientColor", {1.f, 1.f, 1.f});
   m_needsUpdateStatus.ambientLight |= (m_ambientColor != ambientColor);
@@ -181,6 +207,98 @@ void Renderer::commitParameters()
   sp.mistStart = std::max(0.f, getParam<float>("mistStart", 0.f));
   sp.mistDepth = std::max(0.f, getParam<float>("mistDepth", 100.f));
   sp.mistFalloff = std::max(0.f, getParam<float>("mistFalloff", 1.f));
+}
+
+// CYCLES_SHADER_XML: make the graph of 'backgroundSource' the default
+// background shader. Returns false when there is no usable text; the
+// 'background' color and the ambient light apply then.
+bool Renderer::buildSourceBackgroundShader()
+{
+  auto &state = *deviceState();
+  ccl::Shader *shader = state.scene->default_background;
+  const bool wasActive = m_backgroundSourceActive;
+  m_backgroundSourceActive = false;
+
+  if (m_backgroundSource.empty()) {
+    m_backgroundGraph.clear();
+  } else if (wasActive && state.defaultBackgroundOwner == this
+      && !m_backgroundGraph.changed(m_backgroundSource)) {
+    // the graph is in place, only 'background' or the ambient light changed
+    m_backgroundSourceActive = true;
+    return true;
+  } else {
+    auto settings = std::make_unique<ccl::Shader>();
+    auto graph = m_backgroundGraph.build(m_backgroundSource,
+        *settings,
+        true,
+        "the 'background' color and the ambient light are used");
+    if (graph) {
+      reportMessage(ANARI_SEVERITY_DEBUG,
+          "renderer: built background shader graph (%d nodes, %d image "
+          "names)",
+          int(graph->nodes.size()),
+          int(m_backgroundGraph.numImages()));
+      XmlShaderGraph::applySettings(*shader, *settings);
+      shader->name = "anari_background_source";
+      shader->set_graph(std::move(graph));
+      shader->tag_update(state.scene);
+      m_backgroundSourceActive = true;
+      return true;
+    }
+  }
+
+  if (wasActive)
+    XmlShaderGraph::applySettings(*shader, ccl::Shader());
+  return false;
+}
+
+bool Renderer::backgroundSourceActive() const
+{
+  return m_backgroundSourceActive;
+}
+
+void Renderer::syncBackgroundLight(bool worldHasEnvironmentLight)
+{
+  auto &state = *deviceState();
+  auto *scene = state.scene;
+
+  const bool wanted = m_backgroundSourceActive && !worldHasEnvironmentLight;
+  if (!wanted && !state.backgroundSourceLight)
+    return;
+
+  ccl::Object *object = nullptr;
+  if (state.backgroundSourceLight) {
+    for (ccl::Object *o : scene->objects) {
+      if (o->get_geometry() == state.backgroundSourceLight) {
+        object = o;
+        break;
+      }
+    }
+  }
+  if (wanted == (object != nullptr))
+    return;
+
+  if (wanted) {
+    if (!state.backgroundSourceLight) {
+      // Importance map resolution 0: Cycles takes it from the environment
+      // textures and sky nodes of the shader, like Blender's 'Auto'.
+      auto *light = scene->create_node<ccl::BackgroundLight>();
+      light->set_use_mis(true);
+      // The light samples are shaded with the shader of the light.
+      ccl::array<ccl::Node *> usedShaders;
+      usedShaders.push_back_slow(scene->default_background);
+      light->set_used_shaders(usedShaders);
+      state.backgroundSourceLight = light;
+    }
+    object = scene->create_node<ccl::Object>();
+    object->set_geometry(state.backgroundSourceLight);
+    // see the light objects in Group::addGroupToCurrentCyclesScene()
+    object->set_is_shadow_catcher(true);
+    state.backgroundSourceLight->tag_update(scene);
+  } else {
+    scene->delete_node(object);
+  }
+  scene->light_manager->tag_update(scene, ccl::LightManager::UPDATE_ALL);
 }
 
 void Renderer::rebuildDefaultBackgroundShader()
@@ -273,6 +391,15 @@ void Renderer::rebakeBackgroundImage()
 
 void Renderer::makeRendererCurrent()
 {
+  // The default background shader is shared by all renderers of the device.
+  if (deviceState()->defaultBackgroundOwner != this)
+    m_needsUpdateStatus.background = true;
+  // CYCLES_SHADER_XML: a new image in a sampler of 'backgroundSource' arrives
+  // without a commit of the renderer.
+  if (m_backgroundSourceActive
+      && m_backgroundGraph.changed(m_backgroundSource))
+    m_needsUpdateStatus.background = true;
+
   if (m_needsUpdateStatus.backgroundImage) {
     m_needsUpdateStatus.backgroundImage = false;
     rebakeBackgroundImage();
@@ -282,8 +409,17 @@ void Renderer::makeRendererCurrent()
     m_needsUpdateStatus.ambientLight = false;
     if (deviceState()->xmlBgColor || deviceState()->xmlAmbientIntensity)
       updateXmlBackgroundShader();
-    else
+    else if (!buildSourceBackgroundShader())
       rebuildDefaultBackgroundShader();
+    deviceState()->defaultBackgroundOwner = this;
+    // 'backgroundVisibility.*' belongs to the world shader of
+    // 'backgroundSource'; the other backgrounds are seen by all rays.
+    deviceState()->scene->background->set_visibility(m_backgroundSourceActive
+            ? m_backgroundVisibility
+            : uint32_t(ccl::PATH_RAY_VISIBILITY_ALL));
+    // Cycles skips a background shader it found to be empty (black) when the
+    // Background node was last updated: have it look again.
+    deviceState()->scene->background->tag_update(deviceState()->scene);
   }
 #if defined(WITH_OPTIX) || defined(WITH_OPENIMAGEDENOISE)
   if (m_needsUpdateStatus.denoise) {
